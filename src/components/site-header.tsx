@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { ModeToggle } from "./ui/mode-toggle"
 
 export function SiteHeader() {
   return (
@@ -9,9 +9,13 @@ export function SiteHeader() {
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
+          className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-medium">Documents</h1>
+        <h1 className="text-base font-medium">Sistem Manajemen Informasi</h1>
+        <div className="ml-auto flex items-end text-base font-medium">
+          <ModeToggle/>
+
+        </div>
       </div>
     </header>
   )
