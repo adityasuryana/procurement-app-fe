@@ -3,29 +3,36 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Users, Briefcase, QrCode } from "lucide-react"
 
-
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015";
   let qrCount = 0;
   try {
-    const res = await fetch("http://localhost:8015/api/qrcontact", { cache: "no-store" })
+    const res = await fetch(`${apiUrl}/api/qrcontact`, { cache: "no-store" })
     if (res.ok) {
       const data = await res.json()
       qrCount = data.length
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === "DYNAMIC_SERVER_USAGE") {
+      throw error;
+    }
     console.error("Gagal memuat jumlah QR dari database:", error)
   }
 
   let partnerCount = 0;
   let partners = [];
   try {
-    const res = await fetch("http://localhost:8015/api/partner", { cache: "no-store" })
+    const res = await fetch(`${apiUrl}/api/partner`, { cache: "no-store" })
     if (res.ok) {
       partners = await res.json()
       partnerCount = partners.length
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === "DYNAMIC_SERVER_USAGE") {
+      throw error;
+    }
     console.error("Gagal memuat data mitra dari database:", error)
   }
 

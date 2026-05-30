@@ -113,6 +113,8 @@ const handleDownload = async (url: string, filename: string) => {
   }
 };
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015";
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardMitraPage() {
@@ -137,7 +139,7 @@ export default function DashboardMitraPage() {
   React.useEffect(() => {
     const fetchMitras = async () => {
       try {
-        const res = await fetch("http://localhost:8015/api/partner")
+        const res = await fetch(`${apiUrl}/api/partner`)
         if (res.ok) {
           const data = await res.json()
 
@@ -205,7 +207,7 @@ export default function DashboardMitraPage() {
     if (!target) return
 
     try {
-      const res = await fetch(`http://localhost:8015/api/partner/${id}`, {
+      const res = await fetch(`${apiUrl}/api/partner/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -252,7 +254,7 @@ export default function DashboardMitraPage() {
 
     const id = selected.id
     try {
-      const res = await fetch(`http://localhost:8015/api/partner/${id}`, {
+      const res = await fetch(`${apiUrl}/api/partner/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -327,7 +329,7 @@ export default function DashboardMitraPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return
     try {
-      const res = await fetch(`http://localhost:8015/api/partner/${deleteTarget.id}`, {
+      const res = await fetch(`${apiUrl}/api/partner/${deleteTarget.id}`, {
         method: "DELETE"
       })
       if (res.ok) {

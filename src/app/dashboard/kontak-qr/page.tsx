@@ -33,6 +33,8 @@ export type QRContact = {
 
 const ITEMS_PER_PAGE = 6;
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015";
+
 export default function KontakQRPage() {
   const [contacts, setContacts] = useState<QRContact[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -45,7 +47,7 @@ export default function KontakQRPage() {
   const fetchContacts = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("http://localhost:8015/api/qrcontact")
+      const res = await fetch(`${apiUrl}/api/qrcontact`)
       if (res.ok) {
         const data = await res.json()
         // Urutkan dari yang terbaru
@@ -128,7 +130,7 @@ export default function KontakQRPage() {
         website: "https://dea-corp.com/"
       }
 
-      const res = await fetch("http://localhost:8015/api/qrcontact", {
+      const res = await fetch(`${apiUrl}/api/qrcontact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -152,7 +154,7 @@ export default function KontakQRPage() {
   const handleDelete = async (id: string | number) => {
     if (!confirm("Apakah Anda yakin ingin menghapus kontak ini?")) return
     try {
-      const res = await fetch(`http://localhost:8015/api/qrcontact/${id}`, {
+      const res = await fetch(`${apiUrl}/api/qrcontact/${id}`, {
         method: "DELETE"
       })
       if (res.ok) {

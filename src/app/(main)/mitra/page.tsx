@@ -77,6 +77,7 @@ export default function MitraFormPage() {
     e.preventDefault()
     setIsSubmitting(true)
     setErrorMsg("")
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
 
     const formData = new FormData(e.currentTarget)
     const payload: Record<string, any> = {}
@@ -109,7 +110,7 @@ export default function MitraFormPage() {
           const uploadData = new FormData()
           uploadData.append('file', file)
           
-          const uploadRes = await fetch("http://localhost:8015/api/upload", {
+          const uploadRes = await fetch(`${apiUrl}/api/upload`, {
             method: "POST",
             body: uploadData
           })
@@ -129,7 +130,7 @@ export default function MitraFormPage() {
       // Set default status to Pending
       payload['status'] = 'Pending'
 
-      const res = await fetch("http://localhost:8015/api/partner", {
+      const res = await fetch(`${apiUrl}/api/partner`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
