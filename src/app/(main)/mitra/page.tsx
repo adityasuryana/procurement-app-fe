@@ -95,26 +95,40 @@ export default function MitraFormPage() {
       payload[field] = (formData.get(field) as string) || ''
     })
 
-    // File fields mapping - generate mock /uploads/partners/filename format
+    // File fields mapping - upload files to Cloudinary dynamically
     const fileFields = [
       'fileNpwpSppkp', 'fileDomicile', 'fileDeed', 'fileCertificates',
       'fileOrgStructure', 'fileEquipmentList', 'fileExperienceList',
       'fileFinancialAudit', 'fileBankStatement', 'fileApplicationLetter'
     ]
 
-    fileFields.forEach(field => {
-      const file = formData.get(field) as File | null
-      if (file && file.name) {
-        payload[field] = `/uploads/partners/${file.name}`
-      } else {
-        payload[field] = ''
-      }
-    })
-
-    // Set default status to Pending
-    payload['status'] = 'Pending'
-
     try {
+      for (const field of fileFields) {
+        const file = formData.get(field) as File | null
+        if (file && file.name && file.size > 0) {
+          const uploadData = new FormData()
+          uploadData.append('file', file)
+          
+          const uploadRes = await fetch("http://localhost:8015/api/upload", {
+            method: "POST",
+            body: uploadData
+          })
+          
+          if (uploadRes.ok) {
+            const uploadResult = await uploadRes.json()
+            payload[field] = uploadResult.url // Store the actual Cloudinary URL!
+          } else {
+            const errResult = await uploadRes.json()
+            throw new Error(errResult.error || `Gagal mengunggah berkas ${field}`)
+          }
+        } else {
+          payload[field] = ''
+        }
+      }
+
+      // Set default status to Pending
+      payload['status'] = 'Pending'
+
       const res = await fetch("http://localhost:8015/api/partner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,9 +144,9 @@ export default function MitraFormPage() {
         const errData = await res.json()
         setErrorMsg(errData.error || "Gagal mengirim formulir pendaftaran mitra.")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting mitra:", error)
-      setErrorMsg("Terjadi kesalahan jaringan. Silakan hubungkan server backend Anda atau coba lagi.")
+      setErrorMsg(error.message || "Terjadi kesalahan jaringan. Silakan hubungkan server backend Anda atau coba lagi.")
     } finally {
       setIsSubmitting(false)
     }
@@ -160,7 +174,7 @@ export default function MitraFormPage() {
               <div className="flex justify-between items-center text-xs">
                 <span className="text-neutral-500 dark:text-neutral-400">Status Pengajuan</span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                  Pending
+                  Diproses
                 </span>
               </div>
               <Separator className="bg-neutral-200 dark:bg-neutral-800" />

@@ -31,15 +31,16 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          <TooltipProvider>
-            <ThemeProvider
+        suppressHydrationWarning
+      >
+        <TooltipProvider>
+          <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-          {children}
+            {children}
           </ThemeProvider>
         </TooltipProvider>
       </body>

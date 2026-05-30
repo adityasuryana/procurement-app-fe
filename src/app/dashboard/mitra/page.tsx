@@ -8,10 +8,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import {
   Eye, Building2, User, MapPin, Scale, BadgeCheck, FileCheck2,
-  Trash2, CheckCircle2, XCircle, ArrowUpDown,
+  Trash2, CheckCircle2, XCircle, ArrowUpDown, Download,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,378 +44,25 @@ type Mitra = {
   sertifikat1: Sertifikat
   sertifikat2: Sertifikat
   createdAt: string
-  status: "Pending" | "Disetujui" | "Ditolak"
+  status: "Diproses" | "Disetujui" | "Ditolak"
+  alasanDitolak?: string
+  fileDitolak?: string
+  fileNpwpSppkp?: string
+  fileDomicile?: string
+  fileDeed?: string
+  fileCertificates?: string
+  fileOrgStructure?: string
+  fileEquipmentList?: string
+  fileExperienceList?: string
+  fileFinancialAudit?: string
+  fileBankStatement?: string
+  fileApplicationLetter?: string
 }
-
-// ── Dummy Data ────────────────────────────────────────────────────────────────
-
-const DUMMY: Mitra[] = [
-  {
-    id: 1,
-    namaPerusahaan: "PT Maju Bersama Sejahtera",
-    npwp: "01.234.567.8-901.000",
-    sppkp: "PEM-01234/WPJ.06/2022",
-    pjNama: "Budi Santoso",
-    pjJabatan: "Direktur Utama",
-    telpPerusahaan: "021-5551234",
-    telpPj: "081234567890",
-    alamat1: "Jl. Sudirman No. 12, RT 03/RW 05",
-    alamat2: "Gedung Menara Utama Lt. 8",
-    kota: "Jakarta Selatan, DKI Jakarta",
-    kodepos: "12190",
-    aktaPendirian: "No. 05, 15 Mar 2015",
-    aktaPerubahan: "No. 12, 20 Jan 2022",
-    nib: "1234567890123, 01 Feb 2022",
-    siup: "503/SIUP-B/2022",
-    statusModal: "PMDN",
-    nibTanggal: "1234567890123, 01 Feb 2022",
-    sertifikat1: { nama: "SBU Konstruksi", no: "SBU-KI-0001, 10 Mar 2022", masa: "10 Mar 2025", instansi: "LPJK" },
-    sertifikat2: { nama: "ISO 9001:2015", no: "ISO-9001-2022", masa: "15 Apr 2025", instansi: "SGS Indonesia" },
-    createdAt: "2025-04-01T08:30:00Z",
-    status: "Disetujui",
-  },
-  {
-    id: 2,
-    namaPerusahaan: "CV Teknindo Solusi Prima",
-    npwp: "02.345.678.9-012.000",
-    sppkp: "N/A",
-    pjNama: "Rina Wulandari",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "022-4445678",
-    telpPj: "082345678901",
-    alamat1: "Jl. Asia Afrika No. 55",
-    alamat2: "",
-    kota: "Bandung, Jawa Barat",
-    kodepos: "40111",
-    aktaPendirian: "No. 08, 10 Jun 2018",
-    aktaPerubahan: "",
-    nib: "9876543210987, 05 Aug 2020",
-    siup: "503/SIUP-K/2020",
-    statusModal: "PMDN",
-    nibTanggal: "9876543210987, 05 Aug 2020",
-    sertifikat1: { nama: "SBU Instalasi Listrik", no: "SBU-EL-0045, 01 Jan 2023", masa: "01 Jan 2026", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-04-05T10:15:00Z",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    namaPerusahaan: "PT Global Infrastruktur Nusantara",
-    npwp: "03.456.789.0-123.000",
-    sppkp: "PEM-09876/WPJ.09/2021",
-    pjNama: "Ahmad Fauzi",
-    pjJabatan: "Manajer Operasional",
-    telpPerusahaan: "031-7778901",
-    telpPj: "083456789012",
-    alamat1: "Jl. Pemuda No. 101, RT 01/RW 02",
-    alamat2: "Ruko Pemuda Square Blok B-5",
-    kota: "Surabaya, Jawa Timur",
-    kodepos: "60271",
-    aktaPendirian: "No. 22, 30 Sep 2010",
-    aktaPerubahan: "No. 07, 12 Dec 2020",
-    nib: "1122334455667, 20 Nov 2020",
-    siup: "503/SIUP-B/2020",
-    statusModal: "PMA",
-    nibTanggal: "1122334455667, 20 Nov 2020",
-    sertifikat1: { nama: "ISO 14001:2015", no: "ISO-14001-GIN", masa: "20 Jun 2025", instansi: "Bureau Veritas" },
-    sertifikat2: { nama: "SMK3", no: "SMK3-0098/2021", masa: "30 Oct 2024", instansi: "Kemnaker RI" },
-    createdAt: "2025-04-10T14:00:00Z",
-    status: "Pending",
-  },
-  {
-    id: 4,
-    namaPerusahaan: "PT Karya Mandiri Digital",
-    npwp: "04.567.890.1-234.000",
-    sppkp: "PEM-55501/WPJ.04/2023",
-    pjNama: "Dewi Kusuma",
-    pjJabatan: "CEO",
-    telpPerusahaan: "024-3334567",
-    telpPj: "084567890123",
-    alamat1: "Jl. Diponegoro No. 77",
-    alamat2: "",
-    kota: "Semarang, Jawa Tengah",
-    kodepos: "50131",
-    aktaPendirian: "No. 15, 22 Feb 2019",
-    aktaPerubahan: "No. 03, 08 Mar 2023",
-    nib: "5566778899001, 10 Apr 2023",
-    siup: "503/SIUP-K/2023",
-    statusModal: "PMDN",
-    nibTanggal: "5566778899001, 10 Apr 2023",
-    sertifikat1: { nama: "ISO 27001:2013", no: "ISO-27001-KMD", masa: "08 Mar 2026", instansi: "BSI Group" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-04-18T09:00:00Z",
-    status: "Ditolak",
-  },
-  {
-    id: 5,
-    namaPerusahaan: "CV Sarana Teknik Andalan",
-    npwp: "05.678.901.2-345.000",
-    sppkp: "N/A",
-    pjNama: "Hendra Wijaya",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "0741-223344",
-    telpPj: "085678901234",
-    alamat1: "Jl. Sisingamangaraja No. 8",
-    alamat2: "",
-    kota: "Jambi, Jambi",
-    kodepos: "36123",
-    aktaPendirian: "No. 02, 14 Jul 2016",
-    aktaPerubahan: "",
-    nib: "6677889900112, 25 Aug 2021",
-    siup: "503/SIUP-B/2021",
-    statusModal: "PMDN",
-    nibTanggal: "6677889900112, 25 Aug 2021",
-    sertifikat1: { nama: "SBU Mekanikal", no: "SBU-ME-0077, 05 Sep 2022", masa: "05 Sep 2025", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-04-22T11:30:00Z",
-    status: "Pending",
-  },
-  {
-    id: 6,
-    namaPerusahaan: "PT Nusantara Energi Utama",
-    npwp: "06.789.012.3-456.000",
-    sppkp: "PEM-77601/WPJ.07/2022",
-    pjNama: "Rudi Hermawan",
-    pjJabatan: "Presiden Direktur",
-    telpPerusahaan: "0411-334455",
-    telpPj: "086789012345",
-    alamat1: "Jl. Cendrawasih No. 45, RT 02/RW 08",
-    alamat2: "Gedung Graha Energi Lt. 3",
-    kota: "Makassar, Sulawesi Selatan",
-    kodepos: "90111",
-    aktaPendirian: "No. 09, 05 Apr 2012",
-    aktaPerubahan: "No. 04, 11 Jul 2021",
-    nib: "7788990011223, 15 Sep 2021",
-    siup: "503/SIUP-B/2021",
-    statusModal: "PMDN",
-    nibTanggal: "7788990011223, 15 Sep 2021",
-    sertifikat1: { nama: "SBU Mekanikal & Elektrikal", no: "SBU-ME-0099, 15 Sep 2021", masa: "15 Sep 2024", instansi: "LPJK" },
-    sertifikat2: { nama: "ISO 9001:2015", no: "ISO-9001-NEU", masa: "20 Nov 2025", instansi: "TÜV Rheinland" },
-    createdAt: "2025-05-01T09:00:00Z",
-    status: "Disetujui",
-  },
-  {
-    id: 7,
-    namaPerusahaan: "CV Prima Konstruksi Raya",
-    npwp: "07.890.123.4-567.000",
-    sppkp: "N/A",
-    pjNama: "Siti Rahayu",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "0561-445566",
-    telpPj: "087890123456",
-    alamat1: "Jl. Ahmad Yani No. 100",
-    alamat2: "",
-    kota: "Pontianak, Kalimantan Barat",
-    kodepos: "78111",
-    aktaPendirian: "No. 11, 20 Mar 2017",
-    aktaPerubahan: "",
-    nib: "8899001122334, 10 Jun 2022",
-    siup: "503/SIUP-K/2022",
-    statusModal: "PMDN",
-    nibTanggal: "8899001122334, 10 Jun 2022",
-    sertifikat1: { nama: "SBU Konstruksi Gedung", no: "SBU-KG-0033, 10 Jun 2022", masa: "10 Jun 2025", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-05-03T14:30:00Z",
-    status: "Pending",
-  },
-  {
-    id: 8,
-    namaPerusahaan: "PT Sigma Teknologi Indonesia",
-    npwp: "08.901.234.5-678.000",
-    sppkp: "PEM-33201/WPJ.11/2020",
-    pjNama: "Agus Prayitno",
-    pjJabatan: "CEO",
-    telpPerusahaan: "0651-556677",
-    telpPj: "088901234567",
-    alamat1: "Jl. T. Nyak Arief No. 25",
-    alamat2: "Kompleks Perkantoran Banda Raya Blok C",
-    kota: "Banda Aceh, Aceh",
-    kodepos: "23111",
-    aktaPendirian: "No. 03, 08 Jan 2014",
-    aktaPerubahan: "No. 06, 15 Aug 2022",
-    nib: "9900112233445, 20 Sep 2022",
-    siup: "503/SIUP-B/2022",
-    statusModal: "PMDN",
-    nibTanggal: "9900112233445, 20 Sep 2022",
-    sertifikat1: { nama: "ISO 27001:2013", no: "ISO-27001-STI", masa: "15 Aug 2025", instansi: "BSI Group" },
-    sertifikat2: { nama: "SMK3", no: "SMK3-0112/2022", masa: "20 Sep 2025", instansi: "Kemnaker RI" },
-    createdAt: "2025-05-06T08:00:00Z",
-    status: "Disetujui",
-  },
-  {
-    id: 9,
-    namaPerusahaan: "PT Buana Jaya Perkasa",
-    npwp: "09.012.345.6-789.000",
-    sppkp: "PEM-44401/WPJ.02/2021",
-    pjNama: "Wahyu Santoso",
-    pjJabatan: "Direktur Operasional",
-    telpPerusahaan: "0721-667788",
-    telpPj: "089012345678",
-    alamat1: "Jl. Wolter Monginsidi No. 62",
-    alamat2: "",
-    kota: "Bandar Lampung, Lampung",
-    kodepos: "35111",
-    aktaPendirian: "No. 07, 30 May 2011",
-    aktaPerubahan: "No. 02, 05 Jan 2020",
-    nib: "0011223344556, 25 Feb 2020",
-    siup: "503/SIUP-B/2020",
-    statusModal: "PMDN",
-    nibTanggal: "0011223344556, 25 Feb 2020",
-    sertifikat1: { nama: "SBU Sipil", no: "SBU-SI-0055, 25 Feb 2020", masa: "25 Feb 2023", instansi: "LPJK" },
-    sertifikat2: { nama: "ISO 14001:2015", no: "ISO-14001-BJP", masa: "10 Mar 2026", instansi: "Bureau Veritas" },
-    createdAt: "2025-05-08T10:00:00Z",
-    status: "Ditolak",
-  },
-  {
-    id: 10,
-    namaPerusahaan: "CV Cahaya Timur Mandiri",
-    npwp: "10.123.456.7-890.000",
-    sppkp: "N/A",
-    pjNama: "Nurul Hidayah",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "0401-778899",
-    telpPj: "081023456789",
-    alamat1: "Jl. Haluoleo No. 18",
-    alamat2: "",
-    kota: "Kendari, Sulawesi Tenggara",
-    kodepos: "93111",
-    aktaPendirian: "No. 14, 12 Aug 2019",
-    aktaPerubahan: "",
-    nib: "1122334455678, 30 Oct 2022",
-    siup: "503/SIUP-K/2022",
-    statusModal: "PMDN",
-    nibTanggal: "1122334455678, 30 Oct 2022",
-    sertifikat1: { nama: "SBU Instalasi Mekanikal", no: "SBU-IM-0021, 30 Oct 2022", masa: "30 Oct 2025", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-05-10T13:00:00Z",
-    status: "Pending",
-  },
-  {
-    id: 11,
-    namaPerusahaan: "PT Rimba Raya Lestari",
-    npwp: "11.234.567.8-901.000",
-    sppkp: "PEM-55502/WPJ.15/2021",
-    pjNama: "Bambang Sugiarto",
-    pjJabatan: "Direktur Utama",
-    telpPerusahaan: "0511-889900",
-    telpPj: "082134567890",
-    alamat1: "Jl. P. Antasari No. 88",
-    alamat2: "Gedung Borneo Tower Lt. 5",
-    kota: "Balikpapan, Kalimantan Timur",
-    kodepos: "76111",
-    aktaPendirian: "No. 06, 22 Jun 2009",
-    aktaPerubahan: "No. 09, 03 Mar 2022",
-    nib: "2233445566789, 15 Apr 2022",
-    siup: "503/SIUP-B/2022",
-    statusModal: "PMA",
-    nibTanggal: "2233445566789, 15 Apr 2022",
-    sertifikat1: { nama: "ISO 45001:2018", no: "ISO-45001-RRL", masa: "03 Mar 2025", instansi: "SGS Indonesia" },
-    sertifikat2: { nama: "SBU Lingkungan", no: "SBU-LH-0011, 15 Apr 2022", masa: "15 Apr 2025", instansi: "LPJK" },
-    createdAt: "2025-05-12T11:00:00Z",
-    status: "Disetujui",
-  },
-  {
-    id: 12,
-    namaPerusahaan: "CV Mitra Solusi Teknindo",
-    npwp: "12.345.678.9-012.000",
-    sppkp: "N/A",
-    pjNama: "Farida Yusuf",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "0431-990011",
-    telpPj: "083234567891",
-    alamat1: "Jl. Sam Ratulangi No. 15",
-    alamat2: "",
-    kota: "Manado, Sulawesi Utara",
-    kodepos: "95111",
-    aktaPendirian: "No. 04, 19 Sep 2018",
-    aktaPerubahan: "",
-    nib: "3344556677890, 12 Jan 2023",
-    siup: "503/SIUP-K/2023",
-    statusModal: "PMDN",
-    nibTanggal: "3344556677890, 12 Jan 2023",
-    sertifikat1: { nama: "SBU Tata Lingkungan", no: "SBU-TL-0044, 12 Jan 2023", masa: "12 Jan 2026", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-05-14T09:30:00Z",
-    status: "Pending",
-  },
-  {
-    id: 13,
-    namaPerusahaan: "PT Garuda Konstruksi Nasional",
-    npwp: "13.456.789.0-123.000",
-    sppkp: "PEM-66603/WPJ.08/2020",
-    pjNama: "Dedi Kurniawan",
-    pjJabatan: "CEO",
-    telpPerusahaan: "0361-001122",
-    telpPj: "084345678912",
-    alamat1: "Jl. Bypass Ngurah Rai No. 77",
-    alamat2: "Kompleks Bali Business Park Unit B2",
-    kota: "Denpasar, Bali",
-    kodepos: "80111",
-    aktaPendirian: "No. 13, 15 Nov 2007",
-    aktaPerubahan: "No. 08, 22 Sep 2023",
-    nib: "4455667788901, 30 Nov 2023",
-    siup: "503/SIUP-B/2023",
-    statusModal: "PMA",
-    nibTanggal: "4455667788901, 30 Nov 2023",
-    sertifikat1: { nama: "ISO 9001:2015", no: "ISO-9001-GKN", masa: "22 Sep 2026", instansi: "Bureau Veritas" },
-    sertifikat2: { nama: "SMK3", no: "SMK3-0155/2023", masa: "30 Nov 2026", instansi: "Kemnaker RI" },
-    createdAt: "2025-05-16T15:00:00Z",
-    status: "Disetujui",
-  },
-  {
-    id: 14,
-    namaPerusahaan: "PT Andika Putra Sejahtera",
-    npwp: "14.567.890.1-234.000",
-    sppkp: "PEM-77704/WPJ.12/2022",
-    pjNama: "Andika Pratama",
-    pjJabatan: "Direktur Utama",
-    telpPerusahaan: "0711-112233",
-    telpPj: "085456789123",
-    alamat1: "Jl. Jend. Sudirman No. 33",
-    alamat2: "",
-    kota: "Palembang, Sumatera Selatan",
-    kodepos: "30111",
-    aktaPendirian: "No. 01, 07 Feb 2015",
-    aktaPerubahan: "No. 05, 14 Dec 2022",
-    nib: "5566778899012, 20 Jan 2023",
-    siup: "503/SIUP-B/2023",
-    statusModal: "PMDN",
-    nibTanggal: "5566778899012, 20 Jan 2023",
-    sertifikat1: { nama: "SBU Konstruksi Khusus", no: "SBU-KK-0067, 20 Jan 2023", masa: "20 Jan 2026", instansi: "LPJK" },
-    sertifikat2: { nama: "ISO 14001:2015", no: "ISO-14001-APS", masa: "14 Dec 2025", instansi: "SGS Indonesia" },
-    createdAt: "2025-05-18T08:30:00Z",
-    status: "Ditolak",
-  },
-  {
-    id: 15,
-    namaPerusahaan: "CV Lintas Borneo Teknik",
-    npwp: "15.678.901.2-345.000",
-    sppkp: "N/A",
-    pjNama: "Yulia Permatasari",
-    pjJabatan: "Direktur",
-    telpPerusahaan: "0541-223344",
-    telpPj: "086567891234",
-    alamat1: "Jl. Mulawarman No. 50",
-    alamat2: "",
-    kota: "Samarinda, Kalimantan Timur",
-    kodepos: "75111",
-    aktaPendirian: "No. 08, 25 Oct 2020",
-    aktaPerubahan: "",
-    nib: "6677889900123, 05 Mar 2023",
-    siup: "503/SIUP-K/2023",
-    statusModal: "PMDN",
-    nibTanggal: "6677889900123, 05 Mar 2023",
-    sertifikat1: { nama: "SBU Mekanikal", no: "SBU-ME-0088, 05 Mar 2023", masa: "05 Mar 2026", instansi: "LPJK" },
-    sertifikat2: { nama: "", no: "", masa: "", instansi: "" },
-    createdAt: "2025-05-20T10:00:00Z",
-    status: "Pending",
-  },
-]
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const STATUS_STYLE: Record<Mitra["status"], string> = {
-  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  Diproses: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   Disetujui: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   Ditolak: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
 }
@@ -434,12 +84,55 @@ const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: s
   </div>
 )
 
+const handleDownload = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network response was not ok");
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Gagal mendownload file, mengunduh via Cloudinary fl_attachment:", error);
+    const cleanFilename = filename.split(".")[0].replace(/[^a-zA-Z0-9]/g, "_");
+    const extension = filename.split(".").pop() || "pdf";
+    const attachmentFlag = `fl_attachment:${cleanFilename}`;
+    let fallbackUrl = url;
+    if (url.includes("/upload/")) {
+      fallbackUrl = url.replace("/upload/", `/upload/${attachmentFlag}/`);
+    } else {
+      window.open(url, "_blank");
+      return;
+    }
+    window.open(fallbackUrl, "_blank");
+  }
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardMitraPage() {
   const [mitras, setMitras] = useState<Mitra[]>([])
   const [selected, setSelected] = useState<Mitra | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Mitra | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>("Semua")
+  const [activeTab, setActiveTab] = useState<string>("all-applications")
+
+  // Rejection States
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [rejectionFileName, setRejectionFileName] = useState("")
+
+  const filteredMitras = useMemo(() => {
+    return mitras.filter(m => {
+      if (statusFilter === "Semua") return true
+      return m.status === statusFilter
+    })
+  }, [mitras, statusFilter])
 
   React.useEffect(() => {
     const fetchMitras = async () => {
@@ -447,6 +140,11 @@ export default function DashboardMitraPage() {
         const res = await fetch("http://localhost:8015/api/partner")
         if (res.ok) {
           const data = await res.json()
+
+          // Get saved rejections from localStorage
+          const savedRejections = localStorage.getItem("mitra_rejections")
+          const rejections = savedRejections ? JSON.parse(savedRejections) : {}
+
           const mappedData = data.map((item: any) => ({
             id: item.id,
             namaPerusahaan: item.companyName,
@@ -479,7 +177,19 @@ export default function DashboardMitraPage() {
               instansi: item.certificate2Issuer
             },
             createdAt: item.createdAt,
-            status: item.status
+            status: item.status === "Pending" ? "Diproses" : item.status,
+            alasanDitolak: rejections[item.id]?.alasanDitolak || "",
+            fileDitolak: rejections[item.id]?.fileDitolak || "",
+            fileNpwpSppkp: item.fileNpwpSppkp,
+            fileDomicile: item.fileDomicile,
+            fileDeed: item.fileDeed,
+            fileCertificates: item.fileCertificates,
+            fileOrgStructure: item.fileOrgStructure,
+            fileEquipmentList: item.fileEquipmentList,
+            fileExperienceList: item.fileExperienceList,
+            fileFinancialAudit: item.fileFinancialAudit,
+            fileBankStatement: item.fileBankStatement,
+            fileApplicationLetter: item.fileApplicationLetter
           }))
           setMitras(mappedData)
         }
@@ -524,7 +234,7 @@ export default function DashboardMitraPage() {
           certificate2Number: target.sertifikat2.no,
           certificate2Validity: target.sertifikat2.masa,
           certificate2Issuer: target.sertifikat2.instansi,
-          status: newStatus
+          status: newStatus === "Diproses" ? "Pending" : newStatus
         })
       })
 
@@ -534,6 +244,83 @@ export default function DashboardMitraPage() {
       }
     } catch (error) {
       console.error("Gagal memperbarui status mitra:", error)
+    }
+  }
+
+  const handleRejectMitra = async () => {
+    if (!selected || !rejectionReason.trim()) return
+
+    const id = selected.id
+    try {
+      const res = await fetch(`http://localhost:8015/api/partner/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: selected.namaPerusahaan,
+          npwpNumber: selected.npwp,
+          sppkpNumber: selected.sppkp,
+          pjName: selected.pjNama,
+          pjJabatan: selected.pjJabatan,
+          companyPhone: selected.telpPerusahaan,
+          pjPhone: selected.telpPj,
+          address1: selected.alamat1,
+          address2: selected.alamat2,
+          city: selected.kota,
+          postalCode: selected.kodepos,
+          establishmentDeed: selected.aktaPendirian,
+          latestAmendmentDeed: selected.aktaPerubahan,
+          nibNumber: selected.nib,
+          siupNumber: selected.siup,
+          investmentStatus: selected.statusModal,
+          nibDateNumber: selected.nibTanggal,
+          certificate1Name: selected.sertifikat1.nama,
+          certificate1Number: selected.sertifikat1.no,
+          certificate1Validity: selected.sertifikat1.masa,
+          certificate1Issuer: selected.sertifikat1.instansi,
+          certificate2Name: selected.sertifikat2.nama,
+          certificate2Number: selected.sertifikat2.no,
+          certificate2Validity: selected.sertifikat2.masa,
+          certificate2Issuer: selected.sertifikat2.instansi,
+          status: "Ditolak"
+        })
+      })
+
+      if (res.ok) {
+        const savedRejections = localStorage.getItem("mitra_rejections")
+        const rejections = savedRejections ? JSON.parse(savedRejections) : {}
+        rejections[id] = {
+          alasanDitolak: rejectionReason.trim(),
+          fileDitolak: rejectionFileName || ""
+        }
+        localStorage.setItem("mitra_rejections", JSON.stringify(rejections))
+
+        setMitras((prev) =>
+          prev.map((m) =>
+            m.id === id
+              ? {
+                  ...m,
+                  status: "Ditolak",
+                  alasanDitolak: rejectionReason.trim(),
+                  fileDitolak: rejectionFileName || ""
+                }
+              : m
+          )
+        )
+        setSelected((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "Ditolak",
+                alasanDitolak: rejectionReason.trim(),
+                fileDitolak: rejectionFileName || ""
+              }
+            : null
+        )
+
+        setIsRejectOpen(false)
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui status penolakan mitra:", error)
     }
   }
 
@@ -674,7 +461,7 @@ export default function DashboardMitraPage() {
             icon: Building2,
           },
           {
-            label: "Pending", value: mitras.filter(m => m.status === "Pending").length,
+            label: "Diproses", value: mitras.filter(m => m.status === "Diproses").length,
             color: "from-amber-500/20 to-amber-500/5", text: "text-amber-600 dark:text-amber-400",
             icon: BadgeCheck,
           },
@@ -701,8 +488,57 @@ export default function DashboardMitraPage() {
         ))}
       </div>
 
-      {/* DataTable */}
-      <DataTable columns={columns} data={mitras} searchKey="namaPerusahaan" />
+      {/* Tabs Container */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col gap-6 min-h-0">
+        <div className="shrink-0 border-b pb-1">
+          <TabsList variant="line" className="h-9">
+            <TabsTrigger value="all-applications" className="flex items-center gap-1.5 font-bold">
+              <Building2 className="w-4 h-4" /> Daftar Pengajuan
+              <Badge variant="outline" className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-primary/10 text-primary border-primary/20">
+                {mitras.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="approved-mitras" className="flex items-center gap-1.5 font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-pulse" /> Mitra Berjalan
+              <Badge variant="outline" className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                {mitras.filter(m => m.status === "Disetujui").length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* ── TAB 1: ALL APPLICATIONS (DAFTAR PENGAJUAN) ─────────────────────────────────── */}
+        <TabsContent value="all-applications" className="flex-1 flex flex-col gap-6 outline-none">
+          {/* Status Filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+            <div className="flex flex-wrap items-center gap-1.5 border p-1 rounded-lg bg-muted/20 w-fit">
+              {["Semua", "Diproses", "Disetujui", "Ditolak"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-semibold rounded-md transition-all",
+                    statusFilter === status
+                      ? "bg-background text-foreground shadow-sm font-bold border border-border/50"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* DataTable */}
+          <DataTable columns={columns} data={filteredMitras} searchKey="namaPerusahaan" />
+        </TabsContent>
+
+        {/* ── TAB 2: APPROVED MITRAS (MITRA BERJALAN) ───────────────────────────────────── */}
+        <TabsContent value="approved-mitras" className="flex-1 flex flex-col gap-6 outline-none">
+          {/* DataTable for only Disetujui status */}
+          <DataTable columns={columns} data={mitras.filter(m => m.status === "Disetujui")} searchKey="namaPerusahaan" />
+        </TabsContent>
+      </Tabs>
 
       {/* ── Detail Modal ──────────────────────────────────────────────────────── */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -732,6 +568,36 @@ export default function DashboardMitraPage() {
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto px-6 pt-4 pb-2 [&::-webkit-scrollbar]:hidden">
+                {selected.status === "Ditolak" && (
+                  <div className="mb-4 p-4 border border-red-200 bg-red-50/60 dark:bg-red-950/40 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                      <XCircle className="w-4 h-4 shrink-0" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Kemitraan Ditolak</span>
+                    </div>
+                    <div className="text-xs text-red-600 dark:text-red-300/90 leading-relaxed">
+                      <p className="font-semibold">Alasan Penolakan:</p>
+                      <p className="mt-1 bg-background/50 p-2.5 rounded-lg border border-red-100/50 whitespace-pre-line italic">
+                        {selected.alasanDitolak || "Tidak ada alasan spesifik yang diberikan."}
+                      </p>
+                    </div>
+                    {selected.fileDitolak && (
+                      <div className="pt-1.5 flex items-center gap-1.5 text-xs">
+                        <span className="text-red-500 font-medium">Lampiran Bukti:</span>
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            alert(`Membuka lampiran penolakan: ${selected.fileDitolak}`)
+                          }}
+                          className="text-primary hover:underline font-bold inline-flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded border border-primary/10"
+                        >
+                          <FileCheck2 className="w-3 h-3" /> {selected.fileDitolak}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <SectionTitle icon={Building2} title="Informasi Perusahaan" />
                 <DetailRow label="Nama Perusahaan" value={selected.namaPerusahaan} />
                 <DetailRow label="Nomor NPWP" value={selected.npwp} />
@@ -789,18 +655,76 @@ export default function DashboardMitraPage() {
                 <Separator className="mt-3" />
 
                 <SectionTitle icon={FileCheck2} title="Dokumen Persyaratan Administrasi" />
-                <div className="grid grid-cols-2 gap-2 mt-1 pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 pb-2">
                   {[
-                    "Dokumen NPWP & SPPKP", "Akta Domisili", "Dokumen Akta Hukum",
-                    "Dokumen Sertifikat Badan Usaha", "Struktur Organisasi",
-                    "Daftar Alat Kerja & APD", "List Pengalaman & BAST",
-                    "Laporan Audit Keuangan", "Rekening Koran", "Surat Permohonan Mitra",
-                  ].map((doc) => (
-                    <div key={doc} className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
-                      <FileCheck2 className="w-3 h-3 shrink-0 text-primary/60" />
-                      <span>{doc}</span>
-                    </div>
-                  ))}
+                    { label: "Dokumen NPWP & SPPKP", url: selected.fileNpwpSppkp },
+                    { label: "Akta Domisili", url: selected.fileDomicile },
+                    { label: "Dokumen Akta Hukum", url: selected.fileDeed },
+                    { label: "Dokumen Sertifikat Badan Usaha", url: selected.fileCertificates },
+                    { label: "Struktur Organisasi", url: selected.fileOrgStructure },
+                    { label: "Daftar Alat Kerja & APD", url: selected.fileEquipmentList },
+                    { label: "List Pengalaman & BAST", url: selected.fileExperienceList },
+                    { label: "Laporan Audit Keuangan", url: selected.fileFinancialAudit },
+                    { label: "Rekening Koran", url: selected.fileBankStatement },
+                    { label: "Surat Permohonan Mitra", url: selected.fileApplicationLetter },
+                  ].map((doc) => {
+                    const hasFile = !!doc.url;
+                    return (
+                      <div key={doc.label} className={cn(
+                        "flex items-center justify-between border rounded-xl p-3 shadow-xs transition-all",
+                        hasFile 
+                          ? "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-primary/40 hover:shadow-md" 
+                          : "bg-neutral-50/50 dark:bg-neutral-950/20 border-dashed border-neutral-200 dark:border-neutral-800/80 opacity-60"
+                      )}>
+                        <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                          <div className={cn(
+                            "p-1.5 rounded-lg shrink-0",
+                            hasFile 
+                              ? "bg-primary/10 text-primary" 
+                              : "bg-neutral-200/50 dark:bg-neutral-800/50 text-neutral-400"
+                          )}>
+                            <FileCheck2 className="w-4 h-4" />
+                          </div>
+                          <div className="text-left min-w-0">
+                            <p className="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">{doc.label}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {hasFile ? "Berkas terlampir (PDF/Gambar)" : "Belum diunggah"}
+                            </p>
+                          </div>
+                        </div>
+                        {hasFile ? (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-primary/5 hover:bg-primary text-primary hover:text-white border-primary/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
+                              onClick={() => window.open(doc.url, "_blank")}
+                            >
+                              <Eye className="w-3.5 h-3.5 mr-1" /> Lihat
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
+                              onClick={() => {
+                                const cleanCompanyName = selected.namaPerusahaan.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                                const cleanDocLabel = doc.label.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                                const fileExtension = doc.url.split(".").pop()?.split("?")[0] || "pdf";
+                                const fileName = `${cleanCompanyName} - ${cleanDocLabel}.${fileExtension}`;
+                                handleDownload(doc.url, fileName);
+                              }}
+                            >
+                              <Download className="w-3.5 h-3.5 mr-1" /> Unduh
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-muted-foreground bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-md shrink-0">
+                            Kosong
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -817,7 +741,11 @@ export default function DashboardMitraPage() {
                     size="sm"
                     variant="outline"
                     className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => handleSetStatus(selected.id, "Ditolak")}
+                    onClick={() => {
+                      setRejectionReason("")
+                      setRejectionFileName("")
+                      setIsRejectOpen(true)
+                    }}
                     disabled={selected.status === "Ditolak"}
                   >
                     <XCircle className="mr-1.5 h-4 w-4" /> Tolak
@@ -863,6 +791,108 @@ export default function DashboardMitraPage() {
             </Button>
             <Button className="flex-1 bg-destructive hover:bg-destructive/90 text-white" onClick={confirmDelete}>
               <Trash2 className="mr-1.5 h-4 w-4" /> Ya, Hapus
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Rejection Reason & Attachment Dialog ────────────────────────────────── */}
+      <Dialog open={isRejectOpen} onOpenChange={(o) => !o && setIsRejectOpen(false)}>
+        <DialogContent className="max-w-md rounded-xl [&>button:first-of-type]:hidden p-0 gap-0 overflow-hidden border">
+          <div className="shrink-0 px-6 pt-6 pb-4 border-b bg-background">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-foreground">Alasan & Lampiran Penolakan</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Silakan isi alasan penolakan dan lampirkan berkas bukti pendukung (PDF/Foto) untuk mitra ini.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="flex-1 px-6 py-4 space-y-4 text-xs">
+            {/* Rejection Reason */}
+            <div className="grid gap-1">
+              <label htmlFor="rejection-reason" className="font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Alasan Penolakan
+              </label>
+              <textarea
+                id="rejection-reason"
+                placeholder="Tulis alasan penolakan di sini..."
+                rows={4}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="flex min-h-[90px] w-full rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
+              />
+            </div>
+
+            {/* Rejection Attachment */}
+            <div className="grid gap-1">
+              <label className="font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                Lampiran Bukti (PDF / Foto)
+              </label>
+              <div
+                onClick={() => {
+                  const input = document.getElementById("rejection-file-input")
+                  input?.click()
+                }}
+                className={cn(
+                  "border border-dashed rounded-lg p-4 text-center cursor-pointer transition-all duration-150 flex flex-col items-center justify-center gap-1.5",
+                  rejectionFileName
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50 hover:bg-muted/10"
+                )}
+              >
+                <input
+                  id="rejection-file-input"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setRejectionFileName(file.name)
+                    }
+                  }}
+                  accept="image/*,.pdf"
+                  className="hidden"
+                />
+                {rejectionFileName ? (
+                  <>
+                    <FileCheck2 className="w-5 h-5 text-primary shrink-0 animate-bounce" />
+                    <p className="font-bold text-foreground truncate max-w-[280px]">
+                      {rejectionFileName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Lampiran terpilih · Klik untuk ganti berkas
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <FileCheck2 className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <p className="font-bold text-foreground">
+                      Pilih Foto / Dokumen PDF Bukti
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Klik untuk mengunggah bukti pendukung
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t bg-muted/30 px-6 py-4 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsRejectOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={!rejectionReason.trim()}
+              onClick={handleRejectMitra}
+            >
+              Simpan
             </Button>
           </div>
         </DialogContent>
