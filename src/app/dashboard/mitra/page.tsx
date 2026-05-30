@@ -298,22 +298,22 @@ export default function DashboardMitraPage() {
           prev.map((m) =>
             m.id === id
               ? {
-                  ...m,
-                  status: "Ditolak",
-                  alasanDitolak: rejectionReason.trim(),
-                  fileDitolak: rejectionFileName || ""
-                }
+                ...m,
+                status: "Ditolak",
+                alasanDitolak: rejectionReason.trim(),
+                fileDitolak: rejectionFileName || ""
+              }
               : m
           )
         )
         setSelected((prev) =>
           prev
             ? {
-                ...prev,
-                status: "Ditolak",
-                alasanDitolak: rejectionReason.trim(),
-                fileDitolak: rejectionFileName || ""
-              }
+              ...prev,
+              status: "Ditolak",
+              alasanDitolak: rejectionReason.trim(),
+              fileDitolak: rejectionFileName || ""
+            }
             : null
         )
 
@@ -672,15 +672,15 @@ export default function DashboardMitraPage() {
                     return (
                       <div key={doc.label} className={cn(
                         "flex items-center justify-between border rounded-xl p-3 shadow-xs transition-all",
-                        hasFile 
-                          ? "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-primary/40 hover:shadow-md" 
+                        hasFile
+                          ? "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-primary/40 hover:shadow-md"
                           : "bg-neutral-50/50 dark:bg-neutral-950/20 border-dashed border-neutral-200 dark:border-neutral-800/80 opacity-60"
                       )}>
                         <div className="flex items-center gap-2.5 min-w-0 mr-2">
                           <div className={cn(
                             "p-1.5 rounded-lg shrink-0",
-                            hasFile 
-                              ? "bg-primary/10 text-primary" 
+                            hasFile
+                              ? "bg-primary/10 text-primary"
                               : "bg-neutral-200/50 dark:bg-neutral-800/50 text-neutral-400"
                           )}>
                             <FileCheck2 className="w-4 h-4" />
@@ -692,13 +692,15 @@ export default function DashboardMitraPage() {
                             </p>
                           </div>
                         </div>
-                        {hasFile ? (
+                        {hasFile && doc.url ? (
                           <div className="flex items-center gap-1.5 shrink-0">
                             <Button
                               size="sm"
                               variant="outline"
                               className="bg-primary/5 hover:bg-primary text-primary hover:text-white border-primary/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
-                              onClick={() => window.open(doc.url, "_blank")}
+                              onClick={() => {
+                                if (doc.url) window.open(doc.url, "_blank");
+                              }}
                             >
                               <Eye className="w-3.5 h-3.5 mr-1" /> Lihat
                             </Button>
@@ -707,6 +709,7 @@ export default function DashboardMitraPage() {
                               variant="outline"
                               className="bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
                               onClick={() => {
+                                if (!doc.url) return;
                                 const cleanCompanyName = selected.namaPerusahaan.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
                                 const cleanDocLabel = doc.label.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
                                 const fileExtension = doc.url.split(".").pop()?.split("?")[0] || "pdf";
