@@ -48,7 +48,7 @@ type JobVacancy = {
   id: string
   title: string
   department: string
-  type: "Full-time" | "Contract" | "Internship" | "Part-time"
+  type: "Full-time" | "Internship"
   location: string
   status: "Aktif" | "Nonaktif" | "Draft"
   createdAt: string
@@ -71,198 +71,6 @@ type Applicant = {
   cv: string
 }
 
-// ── Initial Mock Data ────────────────────────────────────────────────────────
-
-const INITIAL_VACANCIES: JobVacancy[] = [
-  {
-    id: "JV-001",
-    title: "Senior Procurement Specialist",
-    department: "Procurement",
-    type: "Full-time",
-    location: "Jakarta (Hybrid)",
-    status: "Aktif",
-    createdAt: "2026-05-01",
-    deadline: "2026-06-30",
-    applicants: 3,
-    description: "Memimpin tim pengadaan strategis untuk proyek konstruksi dan infrastruktur besar. Bertanggung jawab atas kepatuhan regulasi, negosiasi vendor, optimasi biaya, serta menjalin hubungan baik dengan mitra strategis guna menjamin kelancaran rantai pasok.",
-    requirements: "Minimal 5 tahun pengalaman di bidang Procurement atau Supply Chain.\nMemiliki sertifikasi profesi pengadaan nasional (PBJP) / internasional merupakan nilai plus.\nKemampuan negosiasi yang sangat kuat and analisis vendor secara komprehensif.\nMampu menggunakan sistem ERP (seperti SAP atau Oracle) dan platform e-procurement dengan lancar."
-  },
-  {
-    id: "JV-002",
-    title: "Frontend Developer (React)",
-    department: "IT & Digital",
-    type: "Full-time",
-    location: "Bandung (Remote)",
-    status: "Aktif",
-    createdAt: "2026-05-10",
-    deadline: "2026-06-15",
-    applicants: 4,
-    description: "Mengembangkan aplikasi web e-procurement menggunakan React, Next.js, dan Tailwind CSS. Fokus pada pembuatan kode yang bersih, performa yang cepat, aksesibilitas tinggi, serta antarmuka pengguna yang sangat responsif dan premium.",
-    requirements: "Minimal 3 tahun pengalaman kerja profesional dengan React dan Next.js.\nMenguasai Tailwind CSS, TypeScript, dan pengelolaan state global (Zustand/Redux).\nBerpengalaman dalam integrasi RESTful API, penanganan autentikasi JWT, dan real-time data.\nMemiliki portofolio aplikasi web yang menarik, interaktif, dan responsif."
-  },
-  {
-    id: "JV-003",
-    title: "Admin Pengadaan",
-    department: "Procurement",
-    type: "Internship",
-    location: "Jakarta (On-site)",
-    status: "Aktif",
-    createdAt: "2026-05-12",
-    deadline: "2026-06-25",
-    applicants: 2,
-    description: "Mendukung tim administrasi pengadaan dalam hal dokumentasi berkas mitra, verifikasi keaslian dokumen kelengkapan vendor terbaru, dan pengarsipan kontrak kerja sama.",
-    requirements: "Mahasiswa aktif tingkat akhir atau lulusan baru dari jurusan Administrasi, Manajemen, Logistik, atau sejenis.\nTeliti, rapi, disiplin waktu, dan terbiasa menggunakan Microsoft Excel atau Google Sheets secara intensif.\nMampu berkomunikasi dengan ramah dan bekerja sama secara harmonis di dalam tim."
-  },
-  {
-    id: "JV-004",
-    title: "Project Manager",
-    department: "Operation",
-    type: "Contract",
-    location: "Surabaya (On-site)",
-    status: "Draft",
-    createdAt: "2026-05-20",
-    deadline: "2026-07-01",
-    applicants: 0,
-    description: "Mengelola siklus hidup proyek pengadaan material kelistrikan dari perencanaan hingga serah terima hasil kerja (BAST). Memastikan ketepatan waktu proyek, standar kualitas, serta optimasi anggaran biaya proyek.",
-    requirements: "Minimal 4 tahun pengalaman kerja sebagai Project Manager di bidang logistik/konstruksi.\nBerpengalaman dalam mengelola proyek pengadaan bernilai besar dengan banyak pemangku kepentingan.\nMemiliki sertifikasi PMP (Project Management Professional) menjadi nilai tambah utama.\nKemampuan kepemimpinan, komunikasi strategis, dan manajemen risiko yang sangat baik."
-  },
-  {
-    id: "JV-005",
-    title: "Legal & Compliance Officer",
-    department: "Legal",
-    type: "Full-time",
-    location: "Jakarta (On-site)",
-    status: "Nonaktif",
-    createdAt: "2026-04-15",
-    deadline: "2026-05-20",
-    applicants: 1,
-    description: "Menyusun, meninjau, dan menegosiasikan draf kontrak kerja sama mitra usaha perusahaan. Memastikan kepatuhan hukum terhadap regulasi pengadaan barang/jasa pemerintah maupun komersial.",
-    requirements: "Lulusan S1 Hukum dengan IPK minimal 3.00 dari universitas terakreditasi baik.\nBerpengalaman minimal 2 tahun dalam bidang legal corporate, contract drafting, dan compliance.\nMemahami hukum perdata, hukum dagang Indonesia, serta regulasi pengadaan nasional."
-  }
-]
-
-const INITIAL_APPLICANTS: Applicant[] = [
-  {
-    id: "AP-001",
-    vacancyId: "JV-001",
-    name: "Ahmad Hidayat",
-    email: "ahmad.hidayat@example.com",
-    phone: "081234567890",
-    status: "Review",
-    appliedAt: "2026-05-02",
-    education: "S1 Manajemen Logistik, Universitas Indonesia",
-    experience: "4 tahun sebagai Procurement Specialist di PT Logistik Prima Jaya.",
-    cv: "CV_Ahmad_Hidayat.pdf"
-  },
-  {
-    id: "AP-002",
-    vacancyId: "JV-001",
-    name: "Siti Rahmawati",
-    email: "siti.rahma@example.com",
-    phone: "085678901234",
-    status: "Interview",
-    appliedAt: "2026-05-05",
-    education: "S1 Teknik Industri, Institut Teknologi Bandung",
-    experience: "5 tahun Supply Chain Coordinator di PT Global Manufacturing.",
-    cv: "CV_Siti_Rahmawati.pdf"
-  },
-  {
-    id: "AP-003",
-    vacancyId: "JV-001",
-    name: "Budi Santoso",
-    email: "budi.santoso@example.com",
-    phone: "082134567890",
-    status: "Diterima",
-    appliedAt: "2026-05-01",
-    education: "S2 Manajemen Bisnis, Universitas Gadjah Mada",
-    experience: "6 tahun Procurement Manager di CV Indo Global Tech.",
-    cv: "CV_Budi_Santoso.pdf"
-  },
-  {
-    id: "AP-004",
-    vacancyId: "JV-002",
-    name: "Rian Pratama",
-    email: "rian.pratama@example.com",
-    phone: "087712345678",
-    status: "Interview",
-    appliedAt: "2026-05-11",
-    education: "S1 Informatika, Universitas Padjadjaran",
-    experience: "3 tahun Frontend Developer dengan React/Redux di Tech Startup.",
-    cv: "CV_Rian_Pratama.pdf"
-  },
-  {
-    id: "AP-005",
-    vacancyId: "JV-002",
-    name: "Eka Wijaya",
-    email: "eka.wijaya@example.com",
-    phone: "081987654321",
-    status: "Review",
-    appliedAt: "2026-05-12",
-    education: "S1 Sistem Informasi, Telkom University",
-    experience: "2 tahun Frontend Developer menggunakan Next.js & Tailwind CSS.",
-    cv: "CV_Eka_Wijaya.pdf"
-  },
-  {
-    id: "AP-006",
-    vacancyId: "JV-002",
-    name: "Dewi Lestari",
-    email: "dewi.lestari@example.com",
-    phone: "085234567890",
-    status: "Diterima",
-    appliedAt: "2026-05-10",
-    education: "S1 Ilmu Komputer, Universitas Indonesia",
-    experience: "4 tahun Software Engineer (Frontend) di FinTech Corporation.",
-    cv: "CV_Dewi_Lestari.pdf"
-  },
-  {
-    id: "AP-007",
-    vacancyId: "JV-002",
-    name: "Faisal Rahman",
-    email: "faisal.r@example.com",
-    phone: "083812345678",
-    status: "Ditolak",
-    appliedAt: "2026-05-11",
-    education: "S1 Teknik Informatika, Gunadarma University",
-    experience: "1 tahun React Junior Developer di Local Software House.",
-    cv: "CV_Faisal_Rahman.pdf"
-  },
-  {
-    id: "AP-008",
-    vacancyId: "JV-003",
-    name: "Laras Atika",
-    email: "laras.atika@example.com",
-    phone: "089612345678",
-    status: "Review",
-    appliedAt: "2026-05-13",
-    education: "D3 Administrasi Perkantoran, ASMI",
-    experience: "Fresh Graduate dengan pengalaman magang administrasi di BUMN.",
-    cv: "CV_Laras_Atika.pdf"
-  },
-  {
-    id: "AP-009",
-    vacancyId: "JV-003",
-    name: "Doni Setiawan",
-    email: "doni.setiawan@example.com",
-    phone: "081287654321",
-    status: "Interview",
-    appliedAt: "2026-05-14",
-    education: "S1 Administrasi Niaga, Universitas Indonesia",
-    experience: "Magang Admin Logistik selama 6 bulan di Perusahaan Retail.",
-    cv: "CV_Doni_Setiawan.pdf"
-  },
-  {
-    id: "AP-010",
-    vacancyId: "JV-005",
-    name: "Hendra Wijaya",
-    email: "hendra.w@example.com",
-    phone: "082387654321",
-    status: "Review",
-    appliedAt: "2026-04-18",
-    education: "S1 Hukum, Universitas Diponegoro",
-    experience: "3 tahun Legal Staff di Perusahaan Properti Nasional.",
-    cv: "CV_Hendra_Wijaya.pdf"
-  }
-]
 
 // ── Status Style Configurations ──────────────────────────────────────────────
 
@@ -274,9 +82,7 @@ const STATUS_STYLE: Record<JobVacancy["status"], string> = {
 
 const TYPE_STYLE: Record<JobVacancy["type"], string> = {
   "Full-time": "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300 border-blue-200",
-  "Contract": "bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 border-purple-200",
   "Internship": "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300 border-amber-200",
-  "Part-time": "bg-pink-50 text-pink-700 dark:bg-pink-950/30 dark:text-pink-300 border-pink-200",
 }
 
 const APPLICANT_STATUS_STYLE: Record<Applicant["status"], string> = {
@@ -297,12 +103,42 @@ const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: s
   </div>
 )
 
+const handleDownload = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Network response was not ok");
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error("Gagal mendownload file, mengunduh via Cloudinary fl_attachment:", error);
+    const cleanFilename = filename.split(".")[0].replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const cleanFilenameUnderscores = cleanFilename.replace(/\s+/g, "_");
+    const attachmentFlag = `fl_attachment:${cleanFilenameUnderscores}`;
+    let fallbackUrl = url;
+    if (url.includes("/upload/")) {
+      fallbackUrl = url.replace("/upload/", `/upload/${attachmentFlag}/`);
+    } else {
+      window.open(url, "_blank");
+      return;
+    }
+    window.open(fallbackUrl, "_blank");
+  }
+};
+
 // ── Main Page Component ────────────────────────────────────────────────────────
 
 export default function DashboardKarirPage() {
   const [vacancies, setVacancies] = useState<JobVacancy[]>([])
   const [applicants, setApplicants] = useState<Applicant[]>([])
   const [statusFilter, setStatusFilter] = useState<string>("Semua")
+  const [applicantStatusFilter, setApplicantStatusFilter] = useState<string>("Semua")
   const [activeTab, setActiveTab] = useState<string>("vacancies")
 
   // Selected States for modals
@@ -315,6 +151,8 @@ export default function DashboardKarirPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isApplicantDetailOpen, setIsApplicantDetailOpen] = useState(false)
+  const [isDeleteApplicantOpen, setIsDeleteApplicantOpen] = useState(false)
+  const [applicantToDelete, setApplicantToDelete] = useState<Applicant | null>(null)
 
   // Form State for job vacancies
   const [formData, setFormData] = useState({
@@ -329,54 +167,70 @@ export default function DashboardKarirPage() {
     requirements: ""
   })
 
-  // Load from localStorage on mount
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
+
+  // Load from database on mount
   useEffect(() => {
-    // Load applicants
-    const savedApplicants = localStorage.getItem("procurement_applicants")
-    let currentApps = INITIAL_APPLICANTS
-    if (savedApplicants) {
+    const fetchData = async () => {
       try {
-        currentApps = JSON.parse(savedApplicants)
-      } catch (e) {
-        console.error("Gagal membaca applicants dari localStorage", e)
-      }
-    } else {
-      localStorage.setItem("procurement_applicants", JSON.stringify(INITIAL_APPLICANTS))
-    }
-    setApplicants(currentApps)
+        const [vacRes, appRes] = await Promise.all([
+          fetch(`${apiUrl}/api/career/vacancies`),
+          fetch(`${apiUrl}/api/career/applicants`)
+        ])
+        if (!vacRes.ok || !appRes.ok) throw new Error("Gagal mengambil data dari database")
 
-    // Load vacancies
-    const savedVacancies = localStorage.getItem("procurement_vacancies")
-    if (savedVacancies) {
-      try {
-        const parsedVac = JSON.parse(savedVacancies)
-        // Auto-sync applicant count based on actual applicant list
-        const syncedVac = parsedVac.map((v: JobVacancy) => {
-          const count = currentApps.filter(a => a.vacancyId === v.id).length
-          return { ...v, applicants: count }
-        })
-        setVacancies(syncedVac)
-        localStorage.setItem("procurement_vacancies", JSON.stringify(syncedVac))
-      } catch (e) {
-        console.error("Gagal membaca vacancies dari localStorage", e)
-        setVacancies(INITIAL_VACANCIES)
+        const vacanciesData = await vacRes.json()
+        const applicantsData = await appRes.json()
+
+        // Sync and map vacancies
+        const mappedVacancies = vacanciesData.map((v: any) => ({
+          ...v,
+          applicants: Array.isArray(v.applicants) ? v.applicants.length : (v.applicants || 0)
+        }))
+
+        // Sync and map applicants
+        const mappedApplicants = applicantsData.map((a: any) => ({
+          ...a,
+          appliedAt: a.createdAt ? a.createdAt.split('T')[0] : a.appliedAt
+        }))
+
+        setVacancies(mappedVacancies)
+        setApplicants(mappedApplicants)
+      } catch (error) {
+        console.error("Gagal mengambil data dari database, menggunakan fallback localStorage:", error)
+        // Load applicants fallback
+        const savedApplicants = localStorage.getItem("procurement_applicants")
+        let currentApps: Applicant[] = []
+        if (savedApplicants) {
+          try {
+            currentApps = JSON.parse(savedApplicants)
+          } catch (e) {
+            console.error("Gagal membaca applicants dari localStorage", e)
+          }
+        }
+        setApplicants(currentApps)
+
+        // Load vacancies fallback
+        const savedVacancies = localStorage.getItem("procurement_vacancies")
+        if (savedVacancies) {
+          try {
+            const parsedVac = JSON.parse(savedVacancies)
+            const syncedVac = parsedVac.map((v: JobVacancy) => {
+              const count = currentApps.filter(a => a.vacancyId === v.id).length
+              return { ...v, applicants: count }
+            })
+            setVacancies(syncedVac)
+          } catch (e) {
+            console.error("Gagal membaca vacancies dari localStorage", e)
+            setVacancies([])
+          }
+        } else {
+          setVacancies([])
+        }
       }
-    } else {
-      // Sync initial
-      const syncedInitial = INITIAL_VACANCIES.map(v => {
-        const count = currentApps.filter(a => a.vacancyId === v.id).length
-        return { ...v, applicants: count }
-      })
-      setVacancies(syncedInitial)
-      localStorage.setItem("procurement_vacancies", JSON.stringify(syncedInitial))
     }
+    fetchData()
   }, [])
-
-  // Save helper
-  const saveToStorage = (updatedList: JobVacancy[]) => {
-    setVacancies(updatedList)
-    localStorage.setItem("procurement_vacancies", JSON.stringify(updatedList))
-  }
 
   // Handle Input Changes
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -396,33 +250,13 @@ export default function DashboardKarirPage() {
   }, [formData])
 
   // CRUD Vacancy Actions
-  const handleCreateVacancy = () => {
+  const handleCreateVacancy = async () => {
     if (!isFormValid) return
-    const newVacancy: JobVacancy = {
-      id: `JV-${String(vacancies.length + 1).padStart(3, "0")}`,
-      title: formData.title.trim(),
-      department: formData.department,
-      type: formData.type,
-      location: formData.location.trim(),
-      status: formData.status,
-      createdAt: new Date().toISOString().split("T")[0],
-      deadline: formData.deadline,
-      applicants: 0,
-      description: formData.description.trim(),
-      requirements: formData.requirements.trim()
-    }
-    const updated = [newVacancy, ...vacancies]
-    saveToStorage(updated)
-    setIsAddOpen(false)
-    resetForm()
-  }
-
-  const handleUpdateVacancy = () => {
-    if (!selectedVacancy || !isFormValid) return
-    const updated = vacancies.map(v => {
-      if (v.id === selectedVacancy.id) {
-        return {
-          ...v,
+    try {
+      const res = await fetch(`${apiUrl}/api/career/vacancies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           title: formData.title.trim(),
           department: formData.department,
           type: formData.type,
@@ -431,78 +265,161 @@ export default function DashboardKarirPage() {
           deadline: formData.deadline,
           description: formData.description.trim(),
           requirements: formData.requirements.trim()
+        })
+      })
+      if (!res.ok) throw new Error("Gagal menyimpan lowongan")
+      const newVacancy = await res.json()
+
+      const mappedVacancy = {
+        ...newVacancy,
+        applicants: 0
+      }
+      setVacancies(prev => [mappedVacancy, ...prev])
+      setIsAddOpen(false)
+      resetForm()
+    } catch (error) {
+      console.error("Gagal menambah lowongan:", error)
+      alert("Gagal menambahkan lowongan ke database")
+    }
+  }
+
+  const handleUpdateVacancy = async () => {
+    if (!selectedVacancy || !isFormValid) return
+    try {
+      const res = await fetch(`${apiUrl}/api/career/vacancies/${selectedVacancy.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          department: formData.department,
+          type: formData.type,
+          location: formData.location.trim(),
+          status: formData.status,
+          deadline: formData.deadline,
+          description: formData.description.trim(),
+          requirements: formData.requirements.trim()
+        })
+      })
+      if (!res.ok) throw new Error("Gagal memperbarui lowongan")
+      const updatedVacancy = await res.json()
+
+      setVacancies(prev => prev.map(v => {
+        if (v.id === selectedVacancy.id) {
+          return {
+            ...updatedVacancy,
+            applicants: v.applicants
+          }
         }
-      }
-      return v
-    })
-    saveToStorage(updated)
-    setIsEditOpen(false)
-    setSelectedVacancy(null)
-    resetForm()
+        return v
+      }))
+      setIsEditOpen(false)
+      setSelectedVacancy(null)
+      resetForm()
+    } catch (error) {
+      console.error("Gagal memperbarui lowongan:", error)
+      alert("Gagal memperbarui lowongan di database")
+    }
   }
 
-  const handleDeleteVacancy = () => {
+  const handleDeleteVacancy = async () => {
     if (!selectedVacancy) return
-    const updatedVac = vacancies.filter(v => v.id !== selectedVacancy.id)
-    saveToStorage(updatedVac)
+    try {
+      const res = await fetch(`${apiUrl}/api/career/vacancies/${selectedVacancy.id}`, {
+        method: "DELETE"
+      })
+      if (!res.ok) throw new Error("Gagal menghapus lowongan")
 
-    // Cascade delete applicants for this vacancy
-    const updatedApps = applicants.filter(a => a.vacancyId !== selectedVacancy.id)
-    setApplicants(updatedApps)
-    localStorage.setItem("procurement_applicants", JSON.stringify(updatedApps))
+      setVacancies(prev => prev.filter(v => v.id !== selectedVacancy.id))
+      setApplicants(prev => prev.filter(a => a.vacancyId !== selectedVacancy.id))
 
-    setIsDeleteOpen(false)
-    setSelectedVacancy(null)
+      setIsDeleteOpen(false)
+      setSelectedVacancy(null)
+    } catch (error) {
+      console.error("Gagal menghapus lowongan:", error)
+      alert("Gagal menghapus lowongan dari database")
+    }
   }
 
-  const handleToggleStatus = (vacancy: JobVacancy) => {
+  const handleToggleStatus = async (vacancy: JobVacancy) => {
     const nextStatus: JobVacancy["status"] = vacancy.status === "Aktif" ? "Nonaktif" : "Aktif"
-    const updated = vacancies.map(v => {
-      if (v.id === vacancy.id) {
-        return { ...v, status: nextStatus }
-      }
-      return v
-    })
-    saveToStorage(updated)
+    try {
+      const res = await fetch(`${apiUrl}/api/career/vacancies/${vacancy.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus })
+      })
+      if (!res.ok) throw new Error("Gagal mengubah status lowongan")
+      const updatedVacancy = await res.json()
+
+      setVacancies(prev => prev.map(v => {
+        if (v.id === vacancy.id) {
+          return {
+            ...updatedVacancy,
+            applicants: v.applicants
+          }
+        }
+        return v
+      }))
+    } catch (error) {
+      console.error("Gagal mengubah status lowongan:", error)
+      alert("Gagal mengubah status lowongan")
+    }
   }
 
   // CRUD Applicant Actions
-  const handleUpdateApplicantStatus = (appId: string, newStatus: Applicant["status"]) => {
-    const updatedApps = applicants.map(a => {
-      if (a.id === appId) {
-        return { ...a, status: newStatus }
-      }
-      return a
-    })
-    setApplicants(updatedApps)
-    localStorage.setItem("procurement_applicants", JSON.stringify(updatedApps))
+  const handleUpdateApplicantStatus = async (appId: string, newStatus: Applicant["status"]) => {
+    try {
+      const res = await fetch(`${apiUrl}/api/career/applicants/${appId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (!res.ok && res.status !== 404) throw new Error("Gagal mengubah status pelamar")
+
+      setApplicants(prev => prev.map(a => {
+        if (a.id === appId) {
+          return {
+            ...a,
+            status: newStatus
+          }
+        }
+        return a
+      }))
+    } catch (error) {
+      console.error("Gagal memperbarui status pelamar:", error)
+      alert("Gagal memperbarui status pelamar")
+    }
   }
 
-  const handleDeleteApplicant = (appId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pelamar ini?")) return
-    const updatedApps = applicants.filter(a => a.id !== appId)
-    setApplicants(updatedApps)
-    localStorage.setItem("procurement_applicants", JSON.stringify(updatedApps))
+  const handleDeleteApplicantConfirm = async () => {
+    if (!applicantToDelete) return
+    try {
+      const res = await fetch(`${apiUrl}/api/career/applicants/${applicantToDelete.id}`, {
+        method: "DELETE"
+      })
+      if (!res.ok && res.status !== 404) throw new Error("Gagal menghapus data pelamar")
 
-    // Decr applicant count for the vacancy
-    if (selectedVacancy) {
-      const updatedVacancies = vacancies.map(v => {
-        if (v.id === selectedVacancy.id) {
-          const newCount = Math.max(0, v.applicants - 1)
-          // Update selectedVacancy in modal state
-          setSelectedVacancy({ ...v, applicants: newCount })
-          return { ...v, applicants: newCount }
-        }
-        return v
-      })
-      saveToStorage(updatedVacancies)
-    } else {
-      // Sync all vacancy applicant counts based on current updatedApps
-      const updatedVacancies = vacancies.map(v => {
-        const count = updatedApps.filter(a => a.vacancyId === v.id).length
-        return { ...v, applicants: count }
-      })
-      saveToStorage(updatedVacancies)
+      const vacancyId = applicantToDelete.vacancyId
+
+      setApplicants(prev => prev.filter(a => a.id !== applicantToDelete.id))
+
+      if (vacancyId) {
+        setVacancies(prev => prev.map(v => {
+          if (v.id === vacancyId) {
+            const newCount = Math.max(0, v.applicants - 1)
+            if (selectedVacancy && selectedVacancy.id === vacancyId) {
+              setSelectedVacancy({ ...selectedVacancy, applicants: newCount })
+            }
+            return { ...v, applicants: newCount }
+          }
+          return v
+        }))
+      }
+      setIsDeleteApplicantOpen(false)
+      setApplicantToDelete(null)
+    } catch (error) {
+      console.error("Gagal menghapus pelamar:", error)
+      alert("Gagal menghapus pelamar dari database")
     }
   }
 
@@ -532,6 +449,14 @@ export default function DashboardKarirPage() {
       return v.status === statusFilter
     })
   }, [vacancies, statusFilter])
+
+  // Filtering data for all applicants table
+  const filteredApplicants = useMemo(() => {
+    return applicants.filter(a => {
+      if (applicantStatusFilter === "Semua") return true
+      return a.status === applicantStatusFilter
+    })
+  }, [applicants, applicantStatusFilter])
 
   // Get applicants for selected vacancy
   const currentApplicants = useMemo(() => {
@@ -791,18 +716,39 @@ export default function DashboardKarirPage() {
       header: "CV / Resume",
       cell: ({ row }) => (
         row.original.cv ? (
-          <a
-            href="#"
-            className="hover:underline text-primary font-semibold flex items-center gap-1 text-[11px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10 w-fit"
-            onClick={(e) => {
-              e.preventDefault()
-              alert(`Membuka berkas resume/CV: ${row.original.cv}`)
-            }}
-          >
-            <FileText className="w-3.5 h-3.5 mr-0.5 shrink-0" />
-            {row.original.cv}
-            <Download className="w-3 h-3 ml-0.5 shrink-0" />
-          </a>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="xs"
+              variant="outline"
+              className="bg-primary/5 hover:bg-primary text-primary hover:text-white border-primary/15 h-6 px-2 rounded text-[10px] font-bold shadow-xs transition-all shrink-0"
+              onClick={() => {
+                if (row.original.cv) {
+                  window.open(row.original.cv, "_blank");
+                }
+              }}
+            >
+              <FileText className="w-3 h-3 mr-0.5 shrink-0" />
+              Lihat CV
+            </Button>
+            <Button
+              size="xs"
+              variant="outline"
+              className="bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/15 h-6 px-2 rounded text-[10px] font-bold shadow-xs transition-all shrink-0"
+              onClick={() => {
+                if (!row.original.cv) return;
+                const job = vacancies.find(v => v.id === row.original.vacancyId);
+                const jobTitle = job ? job.title : "Posisi";
+                const cleanName = row.original.name.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                const cleanJobTitle = jobTitle.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                const fileExtension = row.original.cv.split(".").pop()?.split("?")[0] || "pdf";
+                const fileName = `${cleanName} - CV - ${cleanJobTitle}.${fileExtension}`;
+                handleDownload(row.original.cv, fileName);
+              }}
+            >
+              <Download className="w-3 h-3 mr-0.5 shrink-0" />
+              Unduh
+            </Button>
+          </div>
         ) : (
           <span className="text-xs text-muted-foreground/50 italic">Tidak ada</span>
         )
@@ -869,7 +815,8 @@ export default function DashboardKarirPage() {
             title="Hapus Pelamar"
             onClick={() => {
               setSelectedVacancy(null) // No vacancy contextual trigger
-              handleDeleteApplicant(row.original.id)
+              setApplicantToDelete(row.original)
+              setIsDeleteApplicantOpen(true)
             }}
           >
             <Trash2 className="h-4 w-4" />
@@ -1042,10 +989,30 @@ export default function DashboardKarirPage() {
             ))}
           </div>
 
+          {/* Toolbar / Filters for Applicants */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+            <div className="flex flex-wrap items-center gap-1.5 border p-1 rounded-lg bg-muted/20 w-fit">
+              {["Semua", "Review", "Interview", "Diterima", "Ditolak"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setApplicantStatusFilter(status)}
+                  className={cn(
+                    "px-3 py-1 text-xs font-semibold rounded-md transition-all",
+                    applicantStatusFilter === status
+                      ? "bg-background text-foreground shadow-sm font-bold border border-border/50"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* All Applicants DataTable Card */}
           <Card className="rounded-xl overflow-hidden shadow-xs border">
             <CardContent className="p-4">
-              <DataTable columns={applicantColumns} data={applicants} searchKey="name" />
+              <DataTable columns={applicantColumns} data={filteredApplicants} searchKey="name" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -1178,7 +1145,10 @@ export default function DashboardKarirPage() {
                                   size="icon-xs"
                                   className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md"
                                   title="Hapus Pelamar"
-                                  onClick={() => handleDeleteApplicant(app.id)}
+                                  onClick={() => {
+                                    setApplicantToDelete(app)
+                                    setIsDeleteApplicantOpen(true)
+                                  }}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -1201,17 +1171,37 @@ export default function DashboardKarirPage() {
                                 <div className="flex items-center gap-2 text-muted-foreground mt-0.5">
                                   <FileText className="w-3.5 h-3.5 text-primary/60 shrink-0" />
                                   {app.cv ? (
-                                    <a
-                                      href="#"
-                                      className="hover:underline text-primary font-semibold flex items-center gap-1 text-[11px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10"
-                                      onClick={(e) => {
-                                        e.preventDefault()
-                                        alert(`Membuka berkas resume/CV: ${app.cv}`)
-                                      }}
-                                    >
-                                      {app.cv}
-                                      <Download className="w-3 h-3 ml-1 shrink-0" />
-                                    </a>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <Button
+                                        size="xs"
+                                        variant="outline"
+                                        className="bg-primary/5 hover:bg-primary text-primary hover:text-white border-primary/15 h-6 px-2 rounded text-[10px] font-bold shadow-xs transition-all shrink-0"
+                                        onClick={() => {
+                                          if (app.cv) {
+                                            window.open(app.cv, "_blank");
+                                          }
+                                        }}
+                                      >
+                                        <FileText className="w-3 h-3 mr-0.5 shrink-0" /> Lihat CV
+                                      </Button>
+                                      <Button
+                                        size="xs"
+                                        variant="outline"
+                                        className="bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/15 h-6 px-2 rounded text-[10px] font-bold shadow-xs transition-all shrink-0"
+                                        onClick={() => {
+                                          if (!app.cv) return;
+                                          const job = vacancies.find(v => v.id === app.vacancyId);
+                                          const jobTitle = job ? job.title : "Posisi";
+                                          const cleanName = app.name.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                                          const cleanJobTitle = jobTitle.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                                          const fileExtension = app.cv.split(".").pop()?.split("?")[0] || "pdf";
+                                          const fileName = `${cleanName} - CV - ${cleanJobTitle}.${fileExtension}`;
+                                          handleDownload(app.cv, fileName);
+                                        }}
+                                      >
+                                        <Download className="w-3 h-3 mr-0.5 shrink-0" /> Unduh
+                                      </Button>
+                                    </div>
                                   ) : (
                                     <span className="text-[11px] text-muted-foreground/50 italic">Belum mengunggah CV</span>
                                   )}
@@ -1335,9 +1325,7 @@ export default function DashboardKarirPage() {
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
                 >
                   <option value="Full-time">Full-time</option>
-                  <option value="Contract">Contract</option>
                   <option value="Internship">Internship</option>
-                  <option value="Part-time">Part-time</option>
                 </select>
               </div>
             </div>
@@ -1455,9 +1443,7 @@ export default function DashboardKarirPage() {
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
                 >
                   <option value="Full-time">Full-time</option>
-                  <option value="Contract">Contract</option>
                   <option value="Internship">Internship</option>
-                  <option value="Part-time">Part-time</option>
                 </select>
               </div>
             </div>
@@ -1625,18 +1611,38 @@ export default function DashboardKarirPage() {
                     </p>
                   </div>
                   <div className="space-y-0.5 col-span-2 md:col-span-1">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">CV Pelamar</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">CV Pelamar</p>
                     {selectedApplicant.cv ? (
-                      <a
-                        href="#"
-                        className="hover:underline text-primary font-bold flex items-center gap-1 mt-0.5"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          alert(`Membuka berkas CV: ${selectedApplicant.cv}`)
-                        }}
-                      >
-                        <FileText className="w-3.5 h-3.5" /> {selectedApplicant.cv}
-                      </a>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-primary/5 hover:bg-primary text-primary hover:text-white border-primary/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
+                          onClick={() => {
+                            if (selectedApplicant.cv) {
+                              window.open(selectedApplicant.cv, "_blank");
+                            }
+                          }}
+                        >
+                          <FileText className="w-3.5 h-3.5 mr-1" /> Lihat CV
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-emerald-50 dark:bg-emerald-950/20 hover:bg-emerald-600 text-emerald-600 hover:text-white border-emerald-500/15 h-7 px-2.5 rounded-lg text-[10px] font-bold shadow-xs transition-all shrink-0"
+                          onClick={() => {
+                            if (!selectedApplicant.cv) return;
+                            const jobTitle = vacancies.find(v => v.id === selectedApplicant.vacancyId)?.title || "Posisi";
+                            const cleanName = selectedApplicant.name.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                            const cleanJobTitle = jobTitle.replace(/[^a-zA-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+                            const fileExtension = selectedApplicant.cv.split(".").pop()?.split("?")[0] || "pdf";
+                            const fileName = `${cleanName} - CV - ${cleanJobTitle}.${fileExtension}`;
+                            handleDownload(selectedApplicant.cv, fileName);
+                          }}
+                        >
+                          <Download className="w-3.5 h-3.5 mr-1" /> Unduh
+                        </Button>
+                      </div>
                     ) : (
                       <p className="font-semibold text-muted-foreground italic">Belum diunggah</p>
                     )}
@@ -1688,7 +1694,8 @@ export default function DashboardKarirPage() {
                   size="sm"
                   onClick={() => {
                     setIsApplicantDetailOpen(false)
-                    handleDeleteApplicant(selectedApplicant.id)
+                    setApplicantToDelete(selectedApplicant)
+                    setIsDeleteApplicantOpen(true)
                   }}
                 >
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Hapus Pelamar
@@ -1696,6 +1703,37 @@ export default function DashboardKarirPage() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL DIALOG: HAPUS PELAMAR (KONFIRMASI) ────────────────────────── */}
+      <Dialog open={isDeleteApplicantOpen} onOpenChange={(o) => !o && setIsDeleteApplicantOpen(false)}>
+        <DialogContent className="sm:max-w-[420px] rounded-xl border">
+          <div className="flex items-start gap-3 p-4">
+            <div className="bg-red-100 text-red-600 p-2.5 rounded-full shrink-0">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold text-foreground">Hapus Data Pelamar?</DialogTitle>
+                <DialogDescription className="text-xs leading-relaxed text-muted-foreground">
+                  Apakah Anda yakin ingin menghapus lamaran kerja dari{" "}
+                  <span className="font-bold text-foreground">
+                    {applicantToDelete?.name}
+                  </span>
+                  ? Tindakan ini bersifat permanen, menghapus berkas resume, dan tidak dapat dibatalkan.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+          </div>
+          <DialogFooter className="px-4 py-3 bg-muted/30 flex justify-end gap-2">
+            <Button variant="outline" size="sm" type="button" onClick={() => setIsDeleteApplicantOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" size="sm" type="button" onClick={handleDeleteApplicantConfirm}>
+              Ya, Hapus Pelamar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

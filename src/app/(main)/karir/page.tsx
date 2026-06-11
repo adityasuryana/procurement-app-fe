@@ -90,75 +90,7 @@ const JOB_TYPES = [
   "Part-time"
 ]
 
-// ── Initial Fallback Data ───────────────────────────────────────────────────
 
-const INITIAL_VACANCIES: JobVacancy[] = [
-  {
-    id: "JV-001",
-    title: "Senior Procurement Specialist",
-    department: "Procurement",
-    type: "Full-time",
-    location: "Jakarta (Hybrid)",
-    status: "Aktif",
-    createdAt: "2026-05-01",
-    deadline: "2026-06-30",
-    applicants: 3,
-    description: "Memimpin tim pengadaan strategis untuk proyek konstruksi dan infrastruktur besar. Bertanggung jawab atas kepatuhan regulasi, negosiasi vendor, optimasi biaya, serta menjalin hubungan baik dengan mitra strategis guna menjamin kelancaran rantai pasok.",
-    requirements: "Minimal 5 tahun pengalaman di bidang Procurement atau Supply Chain.\nMemiliki sertifikasi profesi pengadaan nasional (PBJP) / internasional merupakan nilai plus.\nKemampuan negosiasi yang sangat kuat dan analisis vendor secara komprehensif.\nMampu menggunakan sistem ERP (seperti SAP atau Oracle) dan platform e-procurement dengan lancar."
-  },
-  {
-    id: "JV-002",
-    title: "Frontend Developer (React)",
-    department: "IT & Digital",
-    type: "Full-time",
-    location: "Bandung (Remote)",
-    status: "Aktif",
-    createdAt: "2026-05-10",
-    deadline: "2026-06-15",
-    applicants: 4,
-    description: "Mengembangkan aplikasi web e-procurement menggunakan React, Next.js, dan Tailwind CSS. Fokus pada pembuatan kode yang bersih, performa yang cepat, aksesibilitas tinggi, serta antarmuka pengguna yang sangat responsif dan premium.",
-    requirements: "Minimal 3 tahun pengalaman kerja profesional dengan React dan Next.js.\nMenguasai Tailwind CSS, TypeScript, dan pengelolaan state global (Zustand/Redux).\nBerpengalaman dalam integrasi RESTful API, penanganan autentikasi JWT, dan real-time data.\nMemiliki portofolio aplikasi web yang menarik, interaktif, dan responsif."
-  },
-  {
-    id: "JV-003",
-    title: "Admin Pengadaan",
-    department: "Procurement",
-    type: "Internship",
-    location: "Jakarta (On-site)",
-    status: "Aktif",
-    createdAt: "2026-05-12",
-    deadline: "2026-06-25",
-    applicants: 2,
-    description: "Mendukung tim administrasi pengadaan dalam hal dokumentasi berkas mitra, verifikasi keaslian dokumen kelengkapan vendor terbaru, dan pengarsipan kontrak kerja sama.",
-    requirements: "Mahasiswa aktif tingkat akhir atau lulusan baru dari jurusan Administrasi, Manajemen, Logistik, atau sejenis.\nTeliti, rapi, disiplin waktu, dan terbiasa menggunakan Microsoft Excel atau Google Sheets secara intensif.\nMampu berkomunikasi dengan ramah dan bekerja sama secara harmonis di dalam tim."
-  },
-  {
-    id: "JV-004",
-    title: "Project Manager",
-    department: "Operation",
-    type: "Contract",
-    location: "Surabaya (On-site)",
-    status: "Draft",
-    createdAt: "2026-05-20",
-    deadline: "2026-07-01",
-    applicants: 0,
-    description: "Mengelola siklus hidup proyek pengadaan material kelistrikan dari perencanaan hingga serah terima hasil kerja (BAST). Memastikan ketepatan waktu proyek, standar kualitas, serta optimasi anggaran biaya proyek.",
-    requirements: "Minimal 4 tahun pengalaman kerja sebagai Project Manager di bidang logistik/konstruksi.\nBerpengalaman dalam mengelola proyek pengadaan bernilai besar dengan banyak pemangku kepentingan.\nMemiliki sertifikasi PMP (Project Management Professional) menjadi nilai tambah utama.\nKemampuan kepemimpinan, komunikasi strategis, dan manajemen risiko yang sangat baik."
-  },
-  {
-    id: "JV-005",
-    title: "Legal & Compliance Officer",
-    department: "Legal",
-    type: "Full-time",
-    location: "Jakarta (On-site)",
-    status: "Nonaktif",
-    createdAt: "2026-04-15",
-    deadline: "2026-05-20",
-    applicants: 1,
-    description: "Menyusun, meninjau, dan menegosiasikan draf kontrak kerja sama mitra usaha perusahaan. Memastikan kepatuhan hukum terhadap regulasi pengadaan barang/jasa pemerintah maupun komersial.",
-    requirements: "Lulusan S1 Hukum dengan IPK minimal 3.00 dari universitas terakreditasi baik.\nBerpengalaman minimal 2 tahun dalam bidang legal corporate, contract drafting, dan compliance.\nMemahami hukum perdata, hukum dagang Indonesia, serta regulasi pengadaan nasional."
-  }
-]
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
@@ -177,50 +109,71 @@ export default function KarirPelamarPage() {
   const [modalMode, setModalMode] = useState<"view" | "apply" | "success">("view")
 
   // Form Application State
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
+
+  // Form Application State
   const [applyForm, setApplyForm] = useState({
     name: "",
     email: "",
     phone: "",
     education: "",
     experience: "",
-    cvFileName: ""
+    cvFileName: "",
+    cvFile: null as File | null
   })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load from localStorage
+  // Load from API with localStorage fallback
   useEffect(() => {
-    // 1. Applicants
-    const savedApps = localStorage.getItem("procurement_applicants")
-    let currentApps = []
-    if (savedApps) {
+    const fetchVacancies = async () => {
       try {
-        currentApps = JSON.parse(savedApps)
-      } catch (e) {
-        console.error("Gagal parse applicants", e)
-      }
-    }
-    setApplicants(currentApps)
+        const res = await fetch(`${apiUrl}/api/career/vacancies`)
+        if (!res.ok) throw new Error("Gagal mengambil data lowongan kerja")
+        const data = await res.json()
+        const mapped = data.map((v: any) => ({
+          ...v,
+          applicants: Array.isArray(v.applicants) ? v.applicants.length : (v.applicants || 0)
+        }))
+        setVacancies(mapped)
+      } catch (error) {
+        console.error("Gagal memuat lowongan dari database, menggunakan fallback localStorage:", error)
+        // 1. Applicants
+        const savedApps = localStorage.getItem("procurement_applicants")
+        let currentApps = []
+        if (savedApps) {
+          try {
+            currentApps = JSON.parse(savedApps)
+          } catch (e) {
+            console.error("Gagal parse applicants", e)
+          }
+        }
+        setApplicants(currentApps)
 
-    // 2. Vacancies
-    const savedVac = localStorage.getItem("procurement_vacancies")
-    if (savedVac) {
-      try {
-        const parsedVac = JSON.parse(savedVac)
-        // Sync applicant count
-        const synced = parsedVac.map((v: JobVacancy) => {
-          const count = currentApps.filter((a: Applicant) => a.vacancyId === v.id).length
-          return { ...v, applicants: count }
-        })
-        setVacancies(synced)
-      } catch (e) {
-        console.error("Gagal parse vacancies", e)
-        setVacancies(INITIAL_VACANCIES)
+        // 2. Vacancies
+        const savedVac = localStorage.getItem("procurement_vacancies")
+        if (savedVac) {
+          try {
+            const parsedVac = JSON.parse(savedVac)
+            // Sync applicant count
+            const synced = parsedVac.map((v: JobVacancy) => {
+              const count = currentApps.filter((a: Applicant) => a.vacancyId === v.id).length
+              return { ...v, applicants: count }
+            })
+            setVacancies(synced)
+          } catch (e) {
+            console.error("Gagal parse vacancies", e)
+            setVacancies([])
+          }
+        } else {
+          setVacancies([])
+        }
       }
-    } else {
-      setVacancies(INITIAL_VACANCIES)
-      localStorage.setItem("procurement_vacancies", JSON.stringify(INITIAL_VACANCIES))
     }
+    fetchVacancies()
   }, [])
 
   // Filter out non-active jobs
@@ -257,7 +210,8 @@ export default function KarirPelamarPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setApplyForm(prev => ({ ...prev, cvFileName: file.name }))
+      setApplyForm(prev => ({ ...prev, cvFileName: file.name, cvFile: file }))
+      setSubmitError(null)
     }
   }
 
@@ -269,7 +223,8 @@ export default function KarirPelamarPage() {
     e.preventDefault()
     const file = e.dataTransfer.files?.[0]
     if (file) {
-      setApplyForm(prev => ({ ...prev, cvFileName: file.name }))
+      setApplyForm(prev => ({ ...prev, cvFileName: file.name, cvFile: file }))
+      setSubmitError(null)
     }
   }
 
@@ -280,44 +235,46 @@ export default function KarirPelamarPage() {
       applyForm.phone.trim() &&
       applyForm.education.trim() &&
       applyForm.experience.trim() &&
-      applyForm.cvFileName.trim()
+      applyForm.cvFileName.trim() &&
+      applyForm.cvFile
     )
   }, [applyForm])
 
   // Submit Application Action
-  const handleSubmitApplication = () => {
-    if (!selectedJob || !isFormValid) return
+  const handleSubmitApplication = async () => {
+    if (!selectedJob || !isFormValid || !applyForm.cvFile) return
 
-    // 1. Create applicant object
-    const newApp: Applicant = {
-      id: `AP-${String(applicants.length + 1).padStart(3, "0")}`,
-      vacancyId: selectedJob.id,
-      name: applyForm.name.trim(),
-      email: applyForm.email.trim(),
-      phone: applyForm.phone.trim(),
-      status: "Review",
-      appliedAt: new Date().toISOString().split("T")[0],
-      education: applyForm.education.trim(),
-      experience: applyForm.experience.trim(),
-      cv: applyForm.cvFileName
-    }
+    setIsSubmitting(true)
+    setSubmitError(null)
 
-    const updatedApps = [...applicants, newApp]
-    setApplicants(updatedApps)
-    localStorage.setItem("procurement_applicants", JSON.stringify(updatedApps))
+    try {
+      // Construct multipart form data
+      const formData = new FormData()
+      formData.append("name", applyForm.name.trim())
+      formData.append("email", applyForm.email.trim())
+      formData.append("phone", applyForm.phone.trim())
+      formData.append("education", applyForm.education.trim())
+      formData.append("experience", applyForm.experience.trim())
+      formData.append("cv", applyForm.cvFile)
 
-    // 2. Sync job vacancy applicants count
-    const updatedVacancies = vacancies.map(v => {
-      if (v.id === selectedJob.id) {
-        return { ...v, applicants: v.applicants + 1 }
+      const res = await fetch(`${apiUrl}/api/career/vacancies/${selectedJob.id}/apply`, {
+        method: "POST",
+        body: formData
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || "Gagal mengirimkan lamaran pekerjaan")
       }
-      return v
-    })
-    setVacancies(updatedVacancies)
-    localStorage.setItem("procurement_vacancies", JSON.stringify(updatedVacancies))
 
-    // Transition modal to success screen
-    setModalMode("success")
+      // Transition modal to success screen
+      setModalMode("success")
+    } catch (error: any) {
+      console.error("Gagal melamar pekerjaan:", error)
+      setSubmitError(error.message || "Terjadi kesalahan sistem saat mengirim lamaran. Silakan coba kembali.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Open modal flow
@@ -325,6 +282,7 @@ export default function KarirPelamarPage() {
     setSelectedJob(job)
     setModalMode("view")
     setIsDetailOpen(true)
+    setSubmitError(null)
     // Clear form
     setApplyForm({
       name: "",
@@ -332,7 +290,8 @@ export default function KarirPelamarPage() {
       phone: "",
       education: "",
       experience: "",
-      cvFileName: ""
+      cvFileName: "",
+      cvFile: null
     })
   }
 
@@ -684,20 +643,33 @@ export default function KarirPelamarPage() {
                         )}
                       </div>
                     </div>
+                    {submitError && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg text-xs border border-red-200/30">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{submitError}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Footer */}
                   <div className="shrink-0 border-t bg-muted/30 px-6 py-4 flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setModalMode("view")}>
+                    <Button variant="outline" size="sm" onClick={() => setModalMode("view")} disabled={isSubmitting}>
                       Kembali
                     </Button>
                     <Button
                       size="sm"
                       onClick={handleSubmitApplication}
-                      disabled={!isFormValid}
-                      className="shadow-xs font-bold px-4"
+                      disabled={!isFormValid || isSubmitting}
+                      className="shadow-xs font-bold px-4 flex items-center gap-1.5"
                     >
-                      Kirim Lamaran Pekerjaan
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                          Mengirim...
+                        </>
+                      ) : (
+                        "Kirim Lamaran Pekerjaan"
+                      )}
                     </Button>
                   </div>
                 </>
