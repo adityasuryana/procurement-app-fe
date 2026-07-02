@@ -2,13 +2,10 @@
 
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   LogOut,
-  Moon,
-  Sun,
+  User,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import * as React from "react"
 
 import {
@@ -37,17 +34,11 @@ export function NavUser({
 }: {
   user: {
     name: string
-    email: string
+    role: string
     avatar: string
   }
 }) {
   const { isMobile } = useSidebar()
-  const { setTheme, theme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
 
   return (
     <SidebarMenu>
@@ -61,13 +52,12 @@ export function NavUser({
               />
             }
           >
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="rounded-lg">AD</AvatarFallback>
-            </Avatar>
+            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+              <User className="h-4 w-4" />
+            </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs">{user.email}</span>
+              <span className="truncate text-xs text-muted-foreground">{user.role}</span>
             </div>
             <ChevronsUpDown className="ml-auto size-4" />
           </DropdownMenuTrigger>
@@ -80,51 +70,35 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                  </Avatar>
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                    <User className="h-4 w-4" />
+                  </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user.role}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={() => {
+                  window.location.href = "/dashboard/akun"
+                }}
               >
-                {!mounted ? (
-                  <>
-                    <Sun className="h-4 w-4" />
-                    <span>Switch Theme</span>
-                  </>
-                ) : theme === "dark" ? (
-                  <>
-                    <Sun className="h-4 w-4 text-yellow-500" />
-                    <span>Light Mode</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="h-4 w-4 text-blue-500" />
-                    <span>Dark Mode</span>
-                  </>
-                )}
+                <User />
+                Account
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                document.cookie = "isLoggedIn=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+                localStorage.removeItem("user_session")
+                window.location.href = "/portal"
+              }}
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>

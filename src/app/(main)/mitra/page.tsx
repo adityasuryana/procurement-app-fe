@@ -119,7 +119,7 @@ export default function MitraFormPage() {
             const uploadResult = await uploadRes.json()
             payload[field] = uploadResult.url // Store the actual Cloudinary URL!
           } else {
-            const errResult = await uploadRes.json()
+            const errResult = await uploadRes.json().catch(() => ({}))
             throw new Error(errResult.error || `Gagal mengunggah berkas ${field}`)
           }
         } else {

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DEA",
+  title: "Duta Esa Adiperkasa",
   description: "Information Management System",
   icons: {
     icon: "/favicon.svg",

@@ -6,6 +6,8 @@ import {
   GalleryVerticalEnd,
   LayoutDashboard,
   QrCode,
+  Radio,
+  ShieldCheck,
   Users,
 } from "lucide-react"
 
@@ -34,7 +36,9 @@ const data = {
       plan: "Enterprise",
     },
   ],
-  navMain: [
+}
+
+const allNavItems = [
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -56,20 +60,58 @@ const data = {
       url: "/dashboard/karir",
       icon: Briefcase,
     },
-  ],
-}
+    {
+      title: "Removable Tower",
+      url: "/dashboard/removable-tower",
+      icon: Radio,
+    },
+    {
+      title: "Kelola Akun",
+      url: "/dashboard/kelola-akun",
+      icon: ShieldCheck,
+      adminOnly: true,
+    },
+  ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState({
+    name: "Administrator",
+    role: "Admin",
+    avatar: "/avatars/shadcn.jpg",
+  })
+  const [isAdmin, setIsAdmin] = React.useState(false)
+
+  React.useEffect(() => {
+    const session = localStorage.getItem("user_session")
+    if (session) {
+      try {
+        const userData = JSON.parse(session)
+        const fullName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.username
+        const role = userData.role || ""
+        setUser({
+          name: fullName || "Administrator",
+          role: role || "Staff",
+          avatar: "/avatars/shadcn.jpg"
+        })
+        setIsAdmin(role.toLowerCase() === "admin")
+      } catch (e) {
+        console.error("Gagal memuat sesi user:", e)
+      }
+    }
+  }, [])
+
+  const navItems = allNavItems.filter((item) => !("adminOnly" in item && item.adminOnly && !isAdmin))
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

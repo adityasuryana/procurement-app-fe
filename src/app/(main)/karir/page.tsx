@@ -695,16 +695,17 @@ export default function KarirPelamarPage() {
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                       <span className="font-semibold">Nama:</span>
-                      <span className="col-span-2 text-foreground font-medium">{applyForm.name}</span>
+                      <span className="col-span-2 text-foreground font-medium break-words">{applyForm.name}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <span className="font-semibold">Email:</span>
-                      <span className="col-span-2 text-foreground font-medium">{applyForm.email}</span>
+                      <span className="col-span-2 text-foreground font-medium break-all">{applyForm.email}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <span className="font-semibold">Resume / CV:</span>
-                      <span className="col-span-2 text-primary font-bold flex items-center gap-1">
-                        <FileText className="w-3 h-3" /> {applyForm.cvFileName}
+                      <span className="col-span-2 text-primary font-bold flex items-center gap-1 min-w-0">
+                        <FileText className="w-3 h-3 shrink-0" />
+                        <span className="truncate" title={applyForm.cvFileName}>{applyForm.cvFileName}</span>
                       </span>
                     </div>
                   </div>

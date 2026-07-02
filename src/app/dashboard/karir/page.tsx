@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react"
+import XLSX from "xlsx-js-style"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
@@ -231,6 +232,110 @@ export default function DashboardKarirPage() {
     }
     fetchData()
   }, [])
+
+  const handleExportApplicantsXLSX = () => {
+    const rows = filteredApplicants.map(app => {
+      const job = vacancies.find(v => v.id === app.vacancyId)
+      return {
+        "ID Pelamar": app.id,
+        "Nama Lengkap": app.name,
+        "Email": app.email,
+        "Nomor HP": app.phone,
+        "Pendidikan Terakhir": app.education,
+        "Pengalaman Kerja": app.experience,
+        "Posisi Dilamar": job ? job.title : "Posisi Dihapus",
+        "Departemen": job ? job.department : "—",
+        "Status Rekrutmen": app.status,
+        "Tanggal Melamar": new Date(app.appliedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+        "Link CV / Resume": app.cv || "Belum diunggah"
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+
+    // Calculate dynamic column widths
+    const cols = Object.keys(rows[0] || {})
+    const max_widths = cols.map(col => {
+      let maxLen = col.length
+      rows.forEach(row => {
+        const val = row[col as keyof typeof row]
+        if (val !== null && val !== undefined && val !== "") {
+          const strVal = String(val)
+          if (strVal.length > maxLen) {
+            maxLen = strVal.length
+          }
+        }
+      })
+      // Clip extremely long fields like experience or links to max 40 characters for sheet columns
+      return { wch: Math.min(maxLen + 6, 40) }
+    })
+    worksheet["!cols"] = max_widths
+
+    // Add Autofilter
+    if (worksheet["!ref"]) {
+      worksheet["!autofilter"] = { ref: worksheet["!ref"] }
+    }
+
+    // Style table headers with DEA Royal Blue background (#0052CC) and white bold text
+    const totalCols = cols.length
+    for (let colIdx = 0; colIdx < totalCols; ++colIdx) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx })
+      const cell = worksheet[cellRef]
+      if (cell) {
+        cell.s = {
+          fill: {
+            patternType: "solid",
+            fgColor: { rgb: "0052CC" }
+          },
+          font: {
+            name: "Segoe UI",
+            sz: 10,
+            bold: true,
+            color: { rgb: "FFFFFF" }
+          },
+          alignment: {
+            vertical: "center",
+            horizontal: "center",
+            wrapText: true
+          },
+          border: {
+            bottom: { style: "medium", color: { rgb: "003399" } },
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        }
+      }
+    }
+
+    // 3. Make CV links clickable with blue underline styling
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1')
+    const cvColIdx = cols.indexOf("Link CV / Resume")
+    if (cvColIdx !== -1) {
+      for (let r = range.s.r + 1; r <= range.e.r; ++r) {
+        const cellRef = XLSX.utils.encode_cell({ r, c: cvColIdx })
+        const cell = worksheet[cellRef]
+        if (cell && cell.v && typeof cell.v === 'string' && cell.v.startsWith('http')) {
+          cell.l = {
+            Target: cell.v,
+            Tooltip: "Buka Curriculum Vitae"
+          }
+          cell.s = {
+            font: {
+              name: "Segoe UI",
+              sz: 10,
+              color: { rgb: "0066CC" },
+              underline: true
+            }
+          }
+        }
+      }
+    }
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Pelamar")
+    XLSX.writeFile(workbook, `Daftar_Pelamar_Karir_DEA_${new Date().toISOString().split("T")[0]}.xlsx`)
+  }
 
   // Handle Input Changes
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -829,18 +934,21 @@ export default function DashboardKarirPage() {
   ], [vacancies, applicants])
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Manajemen Karir & Lowongan</h2>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Manajemen Karir & Lowongan</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Kelola data lowongan pekerjaan, pantau pelamar, dan perbarui status rekrutmen.
           </p>
         </div>
         {activeTab === "vacancies" && (
-          <Button onClick={triggerAddModal} className="w-full sm:w-auto shadow-sm">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button
+            onClick={triggerAddModal}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl text-xs px-4 h-9 shadow-sm"
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
             Tambah Lowongan
           </Button>
         )}
@@ -898,15 +1006,17 @@ export default function DashboardKarirPage() {
             ].map(({ label, value, color, text, icon: Icon }) => (
               <div
                 key={label}
-                className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${color} p-4 shadow-xs`}
+                className={`group relative overflow-hidden rounded-2xl border bg-card bg-gradient-to-br ${color} p-5 shadow-xs hover:shadow-md transition-all duration-200`}
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-                  <div className={`p-1.5 rounded-lg bg-background/60 ${text} shadow-xs`}>
-                    <Icon className="h-3.5 w-3.5" />
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+                    <p className={`mt-1 text-3xl font-extrabold tracking-tight ${text}`}>{value}</p>
+                  </div>
+                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${text} bg-background/60`}>
+                    <Icon className="h-4 w-4" />
                   </div>
                 </div>
-                <p className={`mt-2 text-3xl font-bold tracking-tight ${text}`}>{value}</p>
               </div>
             ))}
           </div>
@@ -976,15 +1086,17 @@ export default function DashboardKarirPage() {
             ].map(({ label, value, color, text, icon: Icon }) => (
               <div
                 key={label}
-                className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${color} p-4 shadow-xs`}
+                className={`group relative overflow-hidden rounded-2xl border bg-card bg-gradient-to-br ${color} p-5 shadow-xs hover:shadow-md transition-all duration-200`}
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-                  <div className={`p-1.5 rounded-lg bg-background/60 ${text} shadow-xs`}>
-                    <Icon className="h-3.5 w-3.5" />
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+                    <p className={`mt-1 text-3xl font-extrabold tracking-tight ${text}`}>{value}</p>
+                  </div>
+                  <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${text} bg-background/60`}>
+                    <Icon className="h-4 w-4" />
                   </div>
                 </div>
-                <p className={`mt-2 text-3xl font-bold tracking-tight ${text}`}>{value}</p>
               </div>
             ))}
           </div>
@@ -1007,6 +1119,16 @@ export default function DashboardKarirPage() {
                 </button>
               ))}
             </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportApplicantsXLSX}
+              className="h-9 px-4 rounded-xl text-xs font-bold border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex items-center gap-1.5 hover:bg-neutral-50 shadow-xs"
+            >
+              <Download className="w-4 h-4 text-neutral-500" />
+              Ekspor ke Excel
+            </Button>
           </div>
 
           {/* All Applicants DataTable Card */}
@@ -1549,7 +1671,7 @@ export default function DashboardKarirPage() {
 
       {/* ── MODAL DIALOG: DETAIL PROFIL PELAMAR KONTELSTUAL ───────────────────── */}
       <Dialog open={isApplicantDetailOpen} onOpenChange={(o) => !o && setIsApplicantDetailOpen(false)}>
-        <DialogContent className="max-w-xl md:max-w-2xl max-h-[92vh] flex flex-col rounded-xl p-0 gap-0 overflow-hidden border">
+        <DialogContent className="max-w-xl md:max-w-2xl max-h-[92vh] flex flex-col rounded-xl p-0 gap-0 overflow-hidden border [&>button:first-of-type]:hidden">
           {selectedApplicant && (
             <>
               {/* Header */}

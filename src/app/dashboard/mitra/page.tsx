@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
+import XLSX from "xlsx-js-style"
 import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import {
   Eye, Building2, User, MapPin, Scale, BadgeCheck, FileCheck2,
-  Trash2, CheckCircle2, XCircle, ArrowUpDown, Download,
+  Trash2, CheckCircle2, XCircle, ArrowUpDown, Download, AlertTriangle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +21,17 @@ import { cn } from "@/lib/utils"
 
 type Sertifikat = {
   nama: string; no: string; masa: string; instansi: string
+}
+
+type Evaluation = {
+  quality: number;
+  delivery: number;
+  cost: number;
+  responsiveness: number;
+  hse: number;
+  totalScore: number;
+  category: "Baik" | "Cukup" | "Kurang";
+  evaluatedAt: string;
 }
 
 type Mitra = {
@@ -46,6 +58,7 @@ type Mitra = {
   createdAt: string
   status: "Diproses" | "Disetujui" | "Ditolak"
   alasanDitolak?: string
+  alasanDisetujui?: string
   fileDitolak?: string
   fileNpwpSppkp?: string
   fileDomicile?: string
@@ -57,6 +70,8 @@ type Mitra = {
   fileFinancialAudit?: string
   fileBankStatement?: string
   fileApplicationLetter?: string
+  approvedAt?: string
+  evaluation?: Evaluation
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -65,6 +80,20 @@ const STATUS_STYLE: Record<Mitra["status"], string> = {
   Diproses: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   Disetujui: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   Ditolak: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+}
+
+const getScoreDetails = (score: number) => {
+  if (score >= 90) return { rating: 5, label: "Sangat Baik", color: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200" };
+  if (score >= 75) return { rating: 4, label: "Baik", color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border-blue-200" };
+  if (score >= 60) return { rating: 3, label: "Cukup", color: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border-amber-200" };
+  if (score >= 40) return { rating: 2, label: "Kurang", color: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border-orange-200" };
+  return { rating: 1, label: "Sangat Kurang", color: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 border-red-200" };
+}
+
+const getFinalCategory = (totalScore: number) => {
+  if (totalScore >= 75) return { name: "Baik" as const, color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/50" };
+  if (totalScore >= 60) return { name: "Cukup" as const, color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/50" };
+  return { name: "Kurang" as const, color: "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/50" };
 }
 
 // ── Detail Helpers ────────────────────────────────────────────────────────────
@@ -129,6 +158,41 @@ export default function DashboardMitraPage() {
   const [rejectionReason, setRejectionReason] = useState("")
   const [rejectionFileName, setRejectionFileName] = useState("")
 
+  // Approval Confirmation State
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false)
+  const [approvalReason, setApprovalReason] = useState("")
+
+  // Partnership Continuation & Termination States
+  const [isContinueConfirmOpen, setIsContinueConfirmOpen] = useState(false)
+  const [continueReason, setContinueReason] = useState("")
+  const [isTerminateConfirmOpen, setIsTerminateConfirmOpen] = useState(false)
+  const [terminateReason, setTerminateReason] = useState("")
+
+  // Scorecard Evaluation States
+  const [evalQuality, setEvalQuality] = useState<number>(0)
+  const [evalDelivery, setEvalDelivery] = useState<number>(0)
+  const [evalCost, setEvalCost] = useState<number>(0)
+  const [evalResponsiveness, setEvalResponsiveness] = useState<number>(0)
+  const [evalHse, setEvalHse] = useState<number>(0)
+  const [isEditingEval, setIsEditingEval] = useState(false)
+
+  React.useEffect(() => {
+    setIsEditingEval(false)
+    if (selected && selected.evaluation) {
+      setEvalQuality(selected.evaluation.quality)
+      setEvalDelivery(selected.evaluation.delivery)
+      setEvalCost(selected.evaluation.cost)
+      setEvalResponsiveness(selected.evaluation.responsiveness)
+      setEvalHse(selected.evaluation.hse)
+    } else {
+      setEvalQuality(0)
+      setEvalDelivery(0)
+      setEvalCost(0)
+      setEvalResponsiveness(0)
+      setEvalHse(0)
+    }
+  }, [selected])
+
   const filteredMitras = useMemo(() => {
     return mitras.filter(m => {
       if (statusFilter === "Semua") return true
@@ -143,56 +207,66 @@ export default function DashboardMitraPage() {
         if (res.ok) {
           const data = await res.json()
 
-          // Get saved rejections from localStorage
-          const savedRejections = localStorage.getItem("mitra_rejections")
-          const rejections = savedRejections ? JSON.parse(savedRejections) : {}
+          const mappedData = data.map((item: any) => {
+            let parsedEvaluation = null
+            if (item.evaluation) {
+              try {
+                parsedEvaluation = typeof item.evaluation === "string" ? JSON.parse(item.evaluation) : item.evaluation
+              } catch (e) {
+                console.error("Gagal parsing evaluation dari DB:", e)
+              }
+            }
 
-          const mappedData = data.map((item: any) => ({
-            id: item.id,
-            namaPerusahaan: item.companyName,
-            npwp: item.npwpNumber,
-            sppkp: item.sppkpNumber,
-            pjNama: item.pjName,
-            pjJabatan: item.pjPosition,
-            telpPerusahaan: item.companyPhone,
-            telpPj: item.pjPhone,
-            alamat1: item.address1,
-            alamat2: item.address2,
-            kota: item.city,
-            kodepos: item.postalCode,
-            aktaPendirian: item.establishmentDeed,
-            aktaPerubahan: item.latestAmendmentDeed,
-            nib: item.nibNumber,
-            siup: item.siupNumber,
-            statusModal: item.investmentStatus,
-            nibTanggal: item.nibDateNumber,
-            sertifikat1: {
-              nama: item.certificate1Name,
-              no: item.certificate1Number,
-              masa: item.certificate1Validity,
-              instansi: item.certificate1Issuer
-            },
-            sertifikat2: {
-              nama: item.certificate2Name,
-              no: item.certificate2Number,
-              masa: item.certificate2Validity,
-              instansi: item.certificate2Issuer
-            },
-            createdAt: item.createdAt,
-            status: item.status === "Pending" ? "Diproses" : item.status,
-            alasanDitolak: rejections[item.id]?.alasanDitolak || "",
-            fileDitolak: rejections[item.id]?.fileDitolak || "",
-            fileNpwpSppkp: item.fileNpwpSppkp,
-            fileDomicile: item.fileDomicile,
-            fileDeed: item.fileDeed,
-            fileCertificates: item.fileCertificates,
-            fileOrgStructure: item.fileOrgStructure,
-            fileEquipmentList: item.fileEquipmentList,
-            fileExperienceList: item.fileExperienceList,
-            fileFinancialAudit: item.fileFinancialAudit,
-            fileBankStatement: item.fileBankStatement,
-            fileApplicationLetter: item.fileApplicationLetter
-          }))
+            return {
+              id: item.id,
+              namaPerusahaan: item.companyName,
+              npwp: item.npwpNumber,
+              sppkp: item.sppkpNumber,
+              pjNama: item.pjName,
+              pjJabatan: item.pjPosition,
+              telpPerusahaan: item.companyPhone,
+              telpPj: item.pjPhone,
+              alamat1: item.address1,
+              alamat2: item.address2,
+              kota: item.city,
+              kodepos: item.postalCode,
+              aktaPendirian: item.establishmentDeed,
+              aktaPerubahan: item.latestAmendmentDeed,
+              nib: item.nibNumber,
+              siup: item.siupNumber,
+              statusModal: item.investmentStatus,
+              nibTanggal: item.nibDateNumber,
+              sertifikat1: {
+                nama: item.certificate1Name,
+                no: item.certificate1Number,
+                masa: item.certificate1Validity,
+                instansi: item.certificate1Issuer
+              },
+              sertifikat2: {
+                nama: item.certificate2Name,
+                no: item.certificate2Number,
+                masa: item.certificate2Validity,
+                instansi: item.certificate2Issuer
+              },
+              createdAt: item.createdAt,
+              approvedAt: item.approvedAt,
+              status: item.status === "Pending" ? "Diproses" : item.status,
+              alasanDitolak: item.alasanDitolak || "",
+              alasanDisetujui: item.alasanDisetujui || "",
+              fileDitolak: item.fileDitolak || "",
+              fileNpwpSppkp: item.fileNpwpSppkp,
+              fileDomicile: item.fileDomicile,
+              fileDeed: item.fileDeed,
+              fileCertificates: item.fileCertificates,
+              fileOrgStructure: item.fileOrgStructure,
+              fileEquipmentList: item.fileEquipmentList,
+              fileExperienceList: item.fileExperienceList,
+              fileFinancialAudit: item.fileFinancialAudit,
+              fileBankStatement: item.fileBankStatement,
+              fileApplicationLetter: item.fileApplicationLetter,
+              evaluation: parsedEvaluation
+            }
+          })
           setMitras(mappedData)
         }
       } catch (error) {
@@ -202,59 +276,210 @@ export default function DashboardMitraPage() {
     fetchMitras()
   }, [])
 
-  const handleSetStatus = async (id: number, newStatus: Mitra["status"]) => {
+  const handleGlobalExportXLSX = () => {
+    // 1. Data Daftar Pengajuan (Semua Mitra)
+    const pengajuanRows = mitras.map(m => ({
+      "Nama Perusahaan": m.namaPerusahaan,
+      "NPWP": m.npwp,
+      "SPPKP": m.sppkp,
+      "Penanggung Jawab": m.pjNama,
+      "Jabatan PJ": m.pjJabatan,
+      "Telepon Perusahaan": m.telpPerusahaan,
+      "Telepon PJ": m.telpPj,
+      "Alamat": `${m.alamat1} ${m.alamat2 || ""}`.trim(),
+      "Kota": m.kota,
+      "Kode Pos": m.kodepos,
+      "NIB": m.nib,
+      "SIUP": m.siup,
+      "Status Modal": m.statusModal,
+      "Status Kemitraan": m.status,
+      "Tanggal Terdaftar": new Date(m.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+    }))
+
+    // 2. Data Mitra Berjalan (Hanya Status Disetujui)
+    const berjalanRows = mitras.filter(m => m.status === "Disetujui").map(m => {
+      const approvalDate = m.approvedAt ? new Date(m.approvedAt) : null
+      let reviewDateStr = "—"
+      if (approvalDate) {
+        const revDate = new Date(approvalDate)
+        revDate.setFullYear(revDate.getFullYear() + 1)
+        reviewDateStr = revDate.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+      }
+
+      return {
+        "Nama Perusahaan": m.namaPerusahaan,
+        "NPWP": m.npwp,
+        "Penanggung Jawab": m.pjNama,
+        "Jabatan PJ": m.pjJabatan,
+        "Telepon Perusahaan": m.telpPerusahaan,
+        "Kota": m.kota,
+        "Tanggal Disetujui": m.approvedAt ? new Date(m.approvedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—",
+        "Jatuh Tempo Review": reviewDateStr,
+        "Skor Evaluasi": m.evaluation ? m.evaluation.totalScore : "Belum Dievaluasi",
+        "Kategori Evaluasi": m.evaluation ? m.evaluation.category : "—",
+      }
+    })
+
+    const workbook = XLSX.utils.book_new()
+
+    // Setup Sheet 1
+    const wsPengajuan = XLSX.utils.json_to_sheet(pengajuanRows)
+    styleWorksheet(wsPengajuan, pengajuanRows)
+    XLSX.utils.book_append_sheet(workbook, wsPengajuan, "Daftar Pengajuan")
+
+    // Setup Sheet 2
+    const wsBerjalan = XLSX.utils.json_to_sheet(berjalanRows)
+    styleWorksheet(wsBerjalan, berjalanRows)
+    XLSX.utils.book_append_sheet(workbook, wsBerjalan, "Mitra Berjalan")
+
+    XLSX.writeFile(workbook, `Daftar_Mitra_DEA_${new Date().toISOString().split("T")[0]}.xlsx`)
+  }
+
+  const styleWorksheet = (worksheet: any, rows: any[]) => {
+    const cols = Object.keys(rows[0] || {})
+    if (cols.length === 0) return
+
+    // Calculate dynamic column widths
+    const max_widths = cols.map(col => {
+      let maxLen = col.length
+      rows.forEach(row => {
+        const val = row[col as keyof typeof row]
+        if (val !== null && val !== undefined && val !== "") {
+          const strVal = String(val)
+          if (strVal.length > maxLen) {
+            maxLen = strVal.length
+          }
+        }
+      })
+      return { wch: maxLen + 6 }
+    })
+    worksheet["!cols"] = max_widths
+
+    // Add Autofilter
+    if (worksheet["!ref"]) {
+      worksheet["!autofilter"] = { ref: worksheet["!ref"] }
+    }
+
+    // Style table headers with DEA Royal Blue background (#0052CC) and white bold text
+    const totalCols = cols.length
+    for (let colIdx = 0; colIdx < totalCols; ++colIdx) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx })
+      const cell = worksheet[cellRef]
+      if (cell) {
+        cell.s = {
+          fill: {
+            patternType: "solid",
+            fgColor: { rgb: "0052CC" }
+          },
+          font: {
+            name: "Segoe UI",
+            sz: 10,
+            bold: true,
+            color: { rgb: "FFFFFF" }
+          },
+          alignment: {
+            vertical: "center",
+            horizontal: "center",
+            wrapText: true
+          },
+          border: {
+            bottom: { style: "medium", color: { rgb: "003399" } },
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        }
+      }
+    }
+  }
+
+  const handleSetStatus = async (id: number, newStatus: Mitra["status"], reason?: string) => {
     const target = mitras.find(m => m.id === id)
     if (!target) return
 
     try {
+      const payload: Record<string, any> = {
+        companyName: target.namaPerusahaan,
+        npwpNumber: target.npwp,
+        sppkpNumber: target.sppkp,
+        pjName: target.pjNama,
+        pjPosition: target.pjJabatan,
+        companyPhone: target.telpPerusahaan,
+        pjPhone: target.telpPj,
+        address1: target.alamat1,
+        address2: target.alamat2,
+        city: target.kota,
+        postalCode: target.kodepos,
+        establishmentDeed: target.aktaPendirian,
+        latestAmendmentDeed: target.aktaPerubahan,
+        nibNumber: target.nib,
+        siupNumber: target.siup,
+        investmentStatus: target.statusModal,
+        nibDateNumber: target.nibTanggal,
+        certificate1Name: target.sertifikat1.nama,
+        certificate1Number: target.sertifikat1.no,
+        certificate1Validity: target.sertifikat1.masa,
+        certificate1Issuer: target.sertifikat1.instansi,
+        certificate2Name: target.sertifikat2.nama,
+        certificate2Number: target.sertifikat2.no,
+        certificate2Validity: target.sertifikat2.masa,
+        certificate2Issuer: target.sertifikat2.instansi,
+        status: newStatus === "Diproses" ? "Pending" : newStatus
+      }
+
+      if (newStatus === "Disetujui" && reason) {
+        payload.alasanDisetujui = reason.trim()
+      } else if (newStatus === "Ditolak" && reason) {
+        payload.alasanDitolak = reason.trim()
+      }
+
       const res = await fetch(`${apiUrl}/api/partner/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: target.namaPerusahaan,
-          npwpNumber: target.npwp,
-          sppkpNumber: target.sppkp,
-          pjName: target.pjNama,
-          pjPosition: target.pjJabatan,
-          companyPhone: target.telpPerusahaan,
-          pjPhone: target.telpPj,
-          address1: target.alamat1,
-          address2: target.alamat2,
-          city: target.kota,
-          postalCode: target.kodepos,
-          establishmentDeed: target.aktaPendirian,
-          latestAmendmentDeed: target.aktaPerubahan,
-          nibNumber: target.nib,
-          siupNumber: target.siup,
-          investmentStatus: target.statusModal,
-          nibDateNumber: target.nibTanggal,
-          certificate1Name: target.sertifikat1.nama,
-          certificate1Number: target.sertifikat1.no,
-          certificate1Validity: target.sertifikat1.masa,
-          certificate1Issuer: target.sertifikat1.instansi,
-          certificate2Name: target.sertifikat2.nama,
-          certificate2Number: target.sertifikat2.no,
-          certificate2Validity: target.sertifikat2.masa,
-          certificate2Issuer: target.sertifikat2.instansi,
-          status: newStatus === "Diproses" ? "Pending" : newStatus
-        })
+        body: JSON.stringify(payload)
       })
 
       if (res.ok) {
-        setMitras((prev) => prev.map((m) => m.id === id ? { ...m, status: newStatus } : m))
-        setSelected((prev) => prev ? { ...prev, status: newStatus } : null)
+        const nowIso = new Date().toISOString()
+        setMitras((prev) => prev.map((m) => m.id === id ? {
+          ...m,
+          status: newStatus,
+          approvedAt: newStatus === "Disetujui" ? nowIso : (newStatus === "Ditolak" ? undefined : m.approvedAt),
+          alasanDisetujui: newStatus === "Disetujui" ? (reason?.trim() || "") : m.alasanDisetujui,
+          alasanDitolak: newStatus === "Ditolak" ? (reason?.trim() || "") : m.alasanDitolak
+        } : m))
+        setSelected((prev) => prev && prev.id === id ? {
+          ...prev,
+          status: newStatus,
+          approvedAt: newStatus === "Disetujui" ? nowIso : (newStatus === "Ditolak" ? undefined : prev.approvedAt),
+          alasanDisetujui: newStatus === "Disetujui" ? (reason?.trim() || "") : prev.alasanDisetujui,
+          alasanDitolak: newStatus === "Ditolak" ? (reason?.trim() || "") : prev.alasanDitolak
+        } : prev)
       }
     } catch (error) {
       console.error("Gagal memperbarui status mitra:", error)
     }
   }
 
-  const handleRejectMitra = async () => {
-    if (!selected || !rejectionReason.trim()) return
+  const handleSaveEvaluation = async () => {
+    if (!selected) return
 
-    const id = selected.id
+    const totalScore = (evalQuality * 0.3) + (evalDelivery * 0.25) + (evalCost * 0.2) + (evalResponsiveness * 0.15) + (evalHse * 0.1)
+    const category = totalScore >= 75 ? "Baik" : totalScore >= 60 ? "Cukup" : "Kurang"
+
+    const newEval: Evaluation = {
+      quality: evalQuality,
+      delivery: evalDelivery,
+      cost: evalCost,
+      responsiveness: evalResponsiveness,
+      hse: evalHse,
+      totalScore,
+      category,
+      evaluatedAt: new Date().toISOString()
+    }
+
     try {
-      const res = await fetch(`${apiUrl}/api/partner/${id}`, {
+      const res = await fetch(`${apiUrl}/api/partner/${selected.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -262,7 +487,7 @@ export default function DashboardMitraPage() {
           npwpNumber: selected.npwp,
           sppkpNumber: selected.sppkp,
           pjName: selected.pjNama,
-          pjJabatan: selected.pjJabatan,
+          pjPosition: selected.pjJabatan,
           companyPhone: selected.telpPerusahaan,
           pjPhone: selected.telpPj,
           address1: selected.alamat1,
@@ -283,19 +508,76 @@ export default function DashboardMitraPage() {
           certificate2Number: selected.sertifikat2.no,
           certificate2Validity: selected.sertifikat2.masa,
           certificate2Issuer: selected.sertifikat2.instansi,
-          status: "Ditolak"
+          evaluation: JSON.stringify(newEval)
         })
       })
 
       if (res.ok) {
-        const savedRejections = localStorage.getItem("mitra_rejections")
-        const rejections = savedRejections ? JSON.parse(savedRejections) : {}
-        rejections[id] = {
+        setMitras((prev) =>
+          prev.map((m) =>
+            m.id === selected.id
+              ? {
+                ...m,
+                evaluation: newEval
+              }
+              : m
+          )
+        )
+        setSelected((prev) =>
+          prev && prev.id === selected.id
+            ? {
+              ...prev,
+              evaluation: newEval
+            }
+            : prev
+        )
+      }
+    } catch (error) {
+      console.error("Gagal menyimpan evaluasi:", error)
+    }
+  }
+
+  const handleRejectMitra = async () => {
+    if (!selected || !rejectionReason.trim()) return
+
+    const id = selected.id
+    try {
+      const res = await fetch(`${apiUrl}/api/partner/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: selected.namaPerusahaan,
+          npwpNumber: selected.npwp,
+          sppkpNumber: selected.sppkp,
+          pjName: selected.pjNama,
+          pjPosition: selected.pjJabatan,
+          companyPhone: selected.telpPerusahaan,
+          pjPhone: selected.telpPj,
+          address1: selected.alamat1,
+          address2: selected.alamat2,
+          city: selected.kota,
+          postalCode: selected.kodepos,
+          establishmentDeed: selected.aktaPendirian,
+          latestAmendmentDeed: selected.aktaPerubahan,
+          nibNumber: selected.nib,
+          siupNumber: selected.siup,
+          investmentStatus: selected.statusModal,
+          nibDateNumber: selected.nibTanggal,
+          certificate1Name: selected.sertifikat1.nama,
+          certificate1Number: selected.sertifikat1.no,
+          certificate1Validity: selected.sertifikat1.masa,
+          certificate1Issuer: selected.sertifikat1.instansi,
+          certificate2Name: selected.sertifikat2.nama,
+          certificate2Number: selected.sertifikat2.no,
+          certificate2Validity: selected.sertifikat2.masa,
+          certificate2Issuer: selected.sertifikat2.instansi,
+          status: "Ditolak",
           alasanDitolak: rejectionReason.trim(),
           fileDitolak: rejectionFileName || ""
-        }
-        localStorage.setItem("mitra_rejections", JSON.stringify(rejections))
+        })
+      })
 
+      if (res.ok) {
         setMitras((prev) =>
           prev.map((m) =>
             m.id === id
@@ -444,14 +726,169 @@ export default function DashboardMitraPage() {
     },
   ], [])
 
+  const approvedColumns: ColumnDef<Mitra>[] = useMemo(() => [
+    {
+      accessorKey: "namaPerusahaan",
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 font-semibold hover:text-foreground"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Nama Perusahaan <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="font-semibold text-foreground">{row.original.namaPerusahaan}</span>
+      ),
+    },
+    {
+      accessorKey: "pjNama",
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 font-semibold hover:text-foreground"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Penanggung Jawab <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium text-foreground text-xs">{row.original.pjNama}</div>
+          <div className="text-muted-foreground text-[11px]">{row.original.pjJabatan}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "kota",
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 font-semibold hover:text-foreground"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Kota <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">{row.original.kota}</span>
+      ),
+    },
+    {
+      accessorKey: "approvedAt",
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 font-semibold hover:text-foreground"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Tgl Disetujui <ArrowUpDown className="h-3.5 w-3.5" />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground whitespace-nowrap font-medium">
+          {row.original.approvedAt ? new Date(row.original.approvedAt).toLocaleDateString("id-ID", {
+            day: "2-digit", month: "short", year: "numeric",
+          }) : "—"}
+        </span>
+      ),
+    },
+    {
+      id: "evaluationScore",
+      header: "Skor Evaluasi",
+      cell: ({ row }) => {
+        const evaluation = row.original.evaluation
+        if (!evaluation) return <span className="text-xs text-muted-foreground bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full">—</span>
+        const category = getFinalCategory(evaluation.totalScore)
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-bold text-foreground">
+              {evaluation.totalScore.toFixed(1)} / 100
+            </span>
+            <span className={cn(
+              "inline-flex items-center w-fit px-1.5 py-0.25 rounded-md text-[9px] font-extrabold border uppercase tracking-wider scale-90 origin-left",
+              category.color
+            )}>
+              {evaluation.category}
+            </span>
+          </div>
+        )
+      }
+    },
+    {
+      id: "reviewDate",
+      header: "Jatuh Tempo Review",
+      cell: ({ row }) => {
+        const approvalDate = row.original.approvedAt ? new Date(row.original.approvedAt) : null
+        if (!approvalDate) return <span className="text-xs text-muted-foreground">—</span>
+        const reviewDate = new Date(approvalDate)
+        reviewDate.setFullYear(reviewDate.getFullYear() + 1)
+
+        const today = new Date()
+        const timeLeft = reviewDate.getTime() - today.getTime()
+        const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000
+
+        const isWarning = timeLeft <= threeMonthsInMs
+
+        return (
+          <span className={cn(
+            "text-xs font-semibold whitespace-nowrap px-2 py-0.5 rounded-full",
+            isWarning
+              ? "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 font-bold border border-amber-200/50"
+              : "text-muted-foreground bg-neutral-100 dark:bg-neutral-800"
+          )}>
+            {reviewDate.toLocaleDateString("id-ID", {
+              day: "2-digit", month: "short", year: "numeric",
+            })}
+            {isWarning && " (Review)"}
+          </span>
+        )
+      }
+    },
+    {
+      id: "actions",
+      header: () => <span className="sr-only">Aksi</span>,
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+            onClick={() => setSelected(row.original)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setDeleteTarget(row.original)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+  ], [])
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Daftar Mitra</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Data perusahaan yang telah mengajukan formulir pendaftaran mitra.
-        </p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Daftar Mitra</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Data perusahaan yang telah mengajukan formulir pendaftaran mitra.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleGlobalExportXLSX}
+          className="h-9 px-4 rounded-xl text-xs font-bold border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex items-center gap-1.5 hover:bg-neutral-50 shadow-xs"
+        >
+          <Download className="w-4 h-4 text-neutral-500" />
+          Ekspor ke Excel
+        </Button>
       </div>
 
       {/* Stat Cards */}
@@ -478,14 +915,16 @@ export default function DashboardMitraPage() {
             icon: XCircle,
           },
         ].map(({ label, value, color, text, icon: Icon }) => (
-          <div key={label} className={`relative overflow-hidden rounded-xl border bg-gradient-to-br ${color} p-4 shadow-sm`}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">{label}</p>
-              <div className={`p-1.5 rounded-lg bg-background/60 ${text}`}>
-                <Icon className="h-3.5 w-3.5" />
+          <div key={label} className={`group relative overflow-hidden rounded-2xl border bg-card bg-gradient-to-br ${color} p-5 shadow-xs hover:shadow-md transition-all duration-200`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+                <p className={`mt-1 text-3xl font-extrabold tracking-tight ${text}`}>{value}</p>
+              </div>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${text} bg-background/60`}>
+                <Icon className="h-4 w-4" />
               </div>
             </div>
-            <p className={`mt-2 text-3xl font-bold tracking-tight ${text}`}>{value}</p>
           </div>
         ))}
       </div>
@@ -538,7 +977,7 @@ export default function DashboardMitraPage() {
         {/* ── TAB 2: APPROVED MITRAS (MITRA BERJALAN) ───────────────────────────────────── */}
         <TabsContent value="approved-mitras" className="flex-1 flex flex-col gap-6 outline-none">
           {/* DataTable for only Disetujui status */}
-          <DataTable columns={columns} data={mitras.filter(m => m.status === "Disetujui")} searchKey="namaPerusahaan" />
+          <DataTable columns={approvedColumns} data={mitras.filter(m => m.status === "Disetujui")} searchKey="namaPerusahaan" />
         </TabsContent>
       </Tabs>
 
@@ -597,6 +1036,264 @@ export default function DashboardMitraPage() {
                         </a>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {selected.status === "Disetujui" && (
+                  <div className="mb-4 space-y-4">
+                    {/* Warning alert */}
+                    {(() => {
+                      const approvalDate = selected.approvedAt ? new Date(selected.approvedAt) : null
+                      if (!approvalDate) return null
+
+                      const reviewDate = new Date(approvalDate)
+                      reviewDate.setFullYear(reviewDate.getFullYear() + 1)
+
+                      const today = new Date()
+                      const timeLeft = reviewDate.getTime() - today.getTime()
+                      const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000
+
+                      if (timeLeft <= threeMonthsInMs) {
+                        return (
+                          <div className="p-4 border border-amber-200 bg-amber-50/60 dark:bg-amber-950/40 rounded-xl space-y-1 animate-in fade-in duration-350">
+                            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+                              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 animate-pulse" />
+                              <span className="text-xs font-bold uppercase tracking-wider">Perhatian: Jatuh Tempo Tinjauan Mitra</span>
+                            </div>
+                            <p className="text-[11px] text-amber-600 dark:text-amber-300/90 leading-relaxed font-semibold">
+                              Kemitraan ini harus segera direview! Tanggal jatuh tempo tinjauan adalah {reviewDate.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}.
+                            </p>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+
+                    {/* Approval info card */}
+                    <div className="p-4 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                        <BadgeCheck className="w-4 h-4 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Detail Kemitraan Berjalan</span>
+                      </div>
+                      <div className="divide-y divide-emerald-100/10 dark:divide-emerald-900/10">
+                        <DetailRow
+                          label="Tanggal Disetujui"
+                          value={selected.approvedAt ? new Date(selected.approvedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                        />
+                        <DetailRow
+                          label="Tanggal Harus Direview"
+                          value={(() => {
+                            const approvalDate = selected.approvedAt ? new Date(selected.approvedAt) : null
+                            if (!approvalDate) return "—"
+                            const reviewDate = new Date(approvalDate)
+                            reviewDate.setFullYear(reviewDate.getFullYear() + 1)
+                            return reviewDate.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
+                          })()}
+                        />
+                        <DetailRow
+                          label="Alasan Disetujui"
+                          value={selected.alasanDisetujui || "—"}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Scorecard evaluation result or form */}
+                    {(() => {
+                      const approvalDate = selected.approvedAt ? new Date(selected.approvedAt) : null
+                      if (!approvalDate) return null
+
+                      const reviewDate = new Date(approvalDate)
+                      reviewDate.setFullYear(reviewDate.getFullYear() + 1)
+
+                      const today = new Date()
+                      const timeLeft = reviewDate.getTime() - today.getTime()
+                      const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000
+                      const needsReview = timeLeft <= threeMonthsInMs
+
+                      const hasEvaluation = !!selected.evaluation
+                      const showForm = (needsReview && !hasEvaluation) || isEditingEval
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Saved Evaluation Scorecard */}
+                          {hasEvaluation && !isEditingEval && (
+                            <div className="p-4 border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50/10 dark:bg-emerald-950/5 rounded-xl space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+                                  <BadgeCheck className="w-4 h-4 shrink-0 text-emerald-500" />
+                                  <span className="text-xs font-bold uppercase tracking-wider">Hasil Penilaian Terakhir</span>
+                                </div>
+                                {needsReview && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setIsEditingEval(true)}
+                                    className="h-6 px-2 text-[9px] font-bold border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-50/50 hover:bg-amber-100/50 rounded-md"
+                                  >
+                                    Penilaian Ulang
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* Big metrics summary */}
+                              <div className="grid grid-cols-2 gap-4 p-3 bg-white dark:bg-neutral-900/80 border rounded-lg shadow-2xs">
+                                <div>
+                                  <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Total Skor</span>
+                                  <div className="flex items-baseline gap-1 mt-0.5">
+                                    <span className="text-2xl font-extrabold text-foreground">
+                                      {selected.evaluation?.totalScore.toFixed(1)}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">/ 100</span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Kategori Akhir</span>
+                                  <div className="mt-1">
+                                    <span className={cn(
+                                      "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase tracking-wide",
+                                      selected.evaluation ? getFinalCategory(selected.evaluation.totalScore).color : ""
+                                    )}>
+                                      {selected.evaluation?.category}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Breakdown */}
+                              <div className="space-y-2.5 pt-1 text-xs">
+                                {[
+                                  { label: "Quality (30%)", score: selected.evaluation?.quality || 0, desc: "Kualitas produk/jasa sesuai spesifikasi" },
+                                  { label: "Delivery (25%)", score: selected.evaluation?.delivery || 0, desc: "Ketepatan waktu pengiriman" },
+                                  { label: "Cost (20%)", score: selected.evaluation?.cost || 0, desc: "Daya saing harga & efisiensi biaya" },
+                                  { label: "Responsiveness (15%)", score: selected.evaluation?.responsiveness || 0, desc: "Kecepatan respon & dukungan" },
+                                  { label: "HSE Compliance (10%)", score: selected.evaluation?.hse || 0, desc: "Kepatuhan standar K3L (HSE)" },
+                                ].map((item) => {
+                                  const details = getScoreDetails(item.score);
+                                  return (
+                                    <div key={item.label} className="space-y-1">
+                                      <div className="flex justify-between items-center text-[10px]">
+                                        <div>
+                                          <span className="font-bold text-neutral-800 dark:text-neutral-200">{item.label}</span>
+                                          <span className="text-[8px] text-muted-foreground ml-1.5 font-normal">({item.desc})</span>
+                                        </div>
+                                        <span className={cn("font-bold text-[9px] px-1.5 py-0.25 rounded-md border", details.color)}>
+                                          Skor {details.rating} · {details.label} ({item.score})
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1">
+                                        <div
+                                          className="bg-emerald-500 dark:bg-emerald-400 h-1 rounded-full"
+                                          style={{ width: `${item.score}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-[9px] text-muted-foreground text-right italic pt-1">
+                                Dinilai pada: {selected.evaluation && new Date(selected.evaluation.evaluatedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Evaluation Form */}
+                          {showForm && (
+                            <div className="p-4 border border-amber-200/80 bg-amber-500/5 dark:bg-amber-950/5 rounded-xl space-y-3 animate-in fade-in duration-300">
+                              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 border-b border-amber-200/30 pb-2">
+                                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                                <span className="text-xs font-bold uppercase tracking-wider">Form Penilaian Vendor (Evaluation Scorecard)</span>
+                              </div>
+
+                              <div className="space-y-3 pt-1">
+                                {[
+                                  { label: "Quality (30%)", desc: "Kualitas produk/jasa sesuai spesifikasi", val: evalQuality, setVal: setEvalQuality },
+                                  { label: "Delivery (25%)", desc: "Ketepatan waktu pengiriman sesuai komitmen", val: evalDelivery, setVal: setEvalDelivery },
+                                  { label: "Cost (20%)", desc: "Daya saing harga & efisiensi biaya", val: evalCost, setVal: setEvalCost },
+                                  { label: "Responsiveness (15%)", desc: "Kecepatan respon & dukungan terhadap kebutuhan", val: evalResponsiveness, setVal: setEvalResponsiveness },
+                                  { label: "HSE Compliance (10%)", desc: "Kepatuhan standar K3L (HSE)", val: evalHse, setVal: setEvalHse },
+                                ].map((item) => {
+                                  const details = getScoreDetails(item.val);
+                                  return (
+                                    <div key={item.label} className="space-y-1">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <span className="text-xs font-bold text-neutral-800 dark:text-neutral-200">{item.label}</span>
+                                          <span className="text-[9px] text-muted-foreground ml-1.5 font-normal">({item.desc})</span>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2 items-center">
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          value={item.val === 0 ? "" : item.val}
+                                          onChange={(e) => item.setVal(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                          className="w-16 rounded-lg border border-input bg-background px-2 py-1 text-xs text-center font-bold"
+                                        />
+                                        <span className={cn(
+                                          "text-[10px] px-2 py-1 rounded-md border font-bold flex-1 text-center transition-all duration-200",
+                                          details.color
+                                        )}>
+                                          Skor: {details.rating} · {details.label} ({item.val})
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+
+                                {/* Live Calculations */}
+                                {(() => {
+                                  const totalScore = (evalQuality * 0.3) + (evalDelivery * 0.25) + (evalCost * 0.2) + (evalResponsiveness * 0.15) + (evalHse * 0.1)
+                                  const finalCategory = getFinalCategory(totalScore)
+                                  return (
+                                    <div className="mt-4 p-3 rounded-lg border border-dashed flex items-center justify-between gap-4 bg-muted/20 border-neutral-300 dark:border-neutral-700">
+                                      <div>
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Total Skor</p>
+                                        <div className="flex items-baseline gap-1 mt-0.5">
+                                          <span className="text-2xl font-extrabold text-foreground">{totalScore.toFixed(1)}</span>
+                                          <span className="text-[10px] text-muted-foreground">/ 100</span>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Kategori Akhir</p>
+                                        <span className={cn(
+                                          "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border uppercase tracking-wide",
+                                          finalCategory.color
+                                        )}>
+                                          {finalCategory.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 pt-2">
+                                  {isEditingEval && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setIsEditingEval(false)}
+                                      className="flex-1"
+                                    >
+                                      Batal
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    onClick={handleSaveEvaluation}
+                                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                                    disabled={!evalQuality || !evalDelivery || !evalCost || !evalResponsiveness || !evalHse}
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Simpan Penilaian
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
 
@@ -742,27 +1439,73 @@ export default function DashboardMitraPage() {
                   </span>
                 </p>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => {
-                      setRejectionReason("")
-                      setRejectionFileName("")
-                      setIsRejectOpen(true)
-                    }}
-                    disabled={selected.status === "Ditolak"}
-                  >
-                    <XCircle className="mr-1.5 h-4 w-4" /> Tolak
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => handleSetStatus(selected.id, "Disetujui")}
-                    disabled={selected.status === "Disetujui"}
-                  >
-                    <CheckCircle2 className="mr-1.5 h-4 w-4" /> Setujui
-                  </Button>
+                  {selected.status !== "Disetujui" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        setRejectionReason("")
+                        setRejectionFileName("")
+                        setIsRejectOpen(true)
+                      }}
+                      disabled={selected.status === "Ditolak"}
+                    >
+                      <XCircle className="mr-1.5 h-4 w-4" /> Tolak
+                    </Button>
+                  )}
+                  {selected.status !== "Disetujui" && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        setApprovalReason("")
+                        setIsApproveConfirmOpen(true)
+                      }}
+                    >
+                      <CheckCircle2 className="mr-1.5 h-4 w-4" /> Setujui
+                    </Button>
+                  )}
+                  {selected.status === "Disetujui" && (() => {
+                    const approvalDate = selected.approvedAt ? new Date(selected.approvedAt) : null
+                    if (!approvalDate) return null
+                    const reviewDate = new Date(approvalDate)
+                    reviewDate.setFullYear(reviewDate.getFullYear() + 1)
+                    const today = new Date()
+                    const timeLeft = reviewDate.getTime() - today.getTime()
+                    const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000
+                    const needsReview = timeLeft <= threeMonthsInMs
+                    const hasEvaluation = !!selected.evaluation
+
+                    if (needsReview && hasEvaluation && !isEditingEval) {
+                      return (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive animate-in fade-in duration-200"
+                            onClick={() => {
+                              setTerminateReason("")
+                              setIsTerminateConfirmOpen(true)
+                            }}
+                          >
+                            <XCircle className="mr-1.5 h-4 w-4" /> Akhiri Kemitraan
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white animate-in fade-in duration-200"
+                            onClick={() => {
+                              setContinueReason("")
+                              setIsContinueConfirmOpen(true)
+                            }}
+                          >
+                            <CheckCircle2 className="mr-1.5 h-4 w-4" /> Lanjutkan Kemitraan
+                          </Button>
+                        </>
+                      )
+                    }
+                    return null
+                  })()}
                   <Button variant="outline" size="sm" onClick={() => setSelected(null)}>Tutup</Button>
                 </div>
               </div>
@@ -898,6 +1641,173 @@ export default function DashboardMitraPage() {
               onClick={handleRejectMitra}
             >
               Simpan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Approve Confirmation Dialog ────────────────────────────────────────── */}
+      <Dialog open={isApproveConfirmOpen} onOpenChange={setIsApproveConfirmOpen}>
+        <DialogContent className="max-w-md rounded-xl [&>button:first-of-type]:hidden p-0 gap-0 overflow-hidden">
+          <div className="flex flex-col items-center text-center px-8 pt-8 pb-6">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <DialogTitle className="text-lg font-bold mb-1">Setujui Kemitraan</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Apakah Anda yakin ingin menyetujui pengajuan kemitraan dari perusahaan berikut?
+            </DialogDescription>
+            <div className="mt-3 px-4 py-3 bg-muted/50 rounded-xl border w-full text-left">
+              <p className="font-semibold text-sm text-foreground">{selected?.namaPerusahaan}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selected?.pjNama} · {selected?.kota}</p>
+            </div>
+
+            {/* Approval Reason Textarea */}
+            <div className="w-full text-left mt-4 space-y-1">
+              <label htmlFor="approval-reason-input" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Alasan Persetujuan
+              </label>
+              <textarea
+                id="approval-reason-input"
+                placeholder="Tulis alasan menyetujui mitra ini..."
+                rows={3}
+                value={approvalReason}
+                onChange={(e) => setApprovalReason(e.target.value)}
+                className="flex min-h-[70px] w-full rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
+              />
+            </div>
+
+            <p className="text-[11px] text-muted-foreground mt-4 font-medium">
+              Mitra ini akan dipindahkan ke tab Mitra Berjalan.
+            </p>
+          </div>
+          <div className="flex gap-2 px-8 pb-6">
+            <Button variant="outline" className="flex-1" onClick={() => setIsApproveConfirmOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!approvalReason.trim()}
+              onClick={async () => {
+                if (selected) {
+                  await handleSetStatus(selected.id, "Disetujui", approvalReason)
+                  setIsApproveConfirmOpen(false)
+                }
+              }}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Ya, Setujui
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Continue Partnership Confirmation Dialog ────────────────────────────── */}
+      <Dialog open={isContinueConfirmOpen} onOpenChange={setIsContinueConfirmOpen}>
+        <DialogContent className="max-w-md rounded-xl [&>button:first-of-type]:hidden p-0 gap-0 overflow-hidden">
+          <div className="flex flex-col items-center text-center px-8 pt-8 pb-6">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <DialogTitle className="text-lg font-bold mb-1">Lanjutkan Kemitraan</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Apakah Anda yakin ingin melanjutkan kemitraan dengan perusahaan berikut untuk 1 tahun ke depan?
+            </DialogDescription>
+            <div className="mt-3 px-4 py-3 bg-muted/50 rounded-xl border w-full text-left">
+              <p className="font-semibold text-sm text-foreground">{selected?.namaPerusahaan}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selected?.pjNama} · {selected?.kota}</p>
+            </div>
+
+            {/* Continue Reason Textarea */}
+            <div className="w-full text-left mt-4 space-y-1">
+              <label htmlFor="continue-reason-input" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Alasan Kelanjutan Kemitraan
+              </label>
+              <textarea
+                id="continue-reason-input"
+                placeholder="Tulis alasan melanjutkan kemitraan ini..."
+                rows={3}
+                value={continueReason}
+                onChange={(e) => setContinueReason(e.target.value)}
+                className="flex min-h-[70px] w-full rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
+              />
+            </div>
+
+            <p className="text-[11px] text-muted-foreground mt-4 font-medium">
+              Masa jatuh tempo tinjauan mitra ini akan diperpanjang selama 1 tahun.
+            </p>
+          </div>
+          <div className="flex gap-2 px-8 pb-6">
+            <Button variant="outline" className="flex-1" onClick={() => setIsContinueConfirmOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!continueReason.trim()}
+              onClick={async () => {
+                if (selected) {
+                  await handleSetStatus(selected.id, "Disetujui", continueReason)
+                  setIsContinueConfirmOpen(false)
+                  setSelected(null)
+                }
+              }}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Ya, Lanjutkan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Terminate Partnership Confirmation Dialog ───────────────────────────── */}
+      <Dialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
+        <DialogContent className="max-w-md rounded-xl [&>button:first-of-type]:hidden p-0 gap-0 overflow-hidden">
+          <div className="flex flex-col items-center text-center px-8 pt-8 pb-6">
+            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mb-4">
+              <XCircle className="w-7 h-7 text-red-600 dark:text-red-400" />
+            </div>
+            <DialogTitle className="text-lg font-bold mb-1">Akhiri Kemitraan</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Apakah Anda yakin ingin mengakhiri hubungan kemitraan dengan perusahaan berikut?
+            </DialogDescription>
+            <div className="mt-3 px-4 py-3 bg-muted/50 rounded-xl border w-full text-left">
+              <p className="font-semibold text-sm text-foreground">{selected?.namaPerusahaan}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{selected?.pjNama} · {selected?.kota}</p>
+            </div>
+
+            {/* Terminate Reason Textarea */}
+            <div className="w-full text-left mt-4 space-y-1">
+              <label htmlFor="terminate-reason-input" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Alasan Pengakhiran Kemitraan
+              </label>
+              <textarea
+                id="terminate-reason-input"
+                placeholder="Tulis alasan mengakhiri kemitraan ini..."
+                rows={3}
+                value={terminateReason}
+                onChange={(e) => setTerminateReason(e.target.value)}
+                className="flex min-h-[70px] w-full rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs placeholder:text-muted-foreground outline-hidden focus:border-ring focus:ring-3 focus:ring-ring/50"
+              />
+            </div>
+
+            <p className="text-[11px] text-red-600 dark:text-red-400 mt-4 font-semibold">
+              Status kemitraan ini akan diubah menjadi Ditolak / Berakhir.
+            </p>
+          </div>
+          <div className="flex gap-2 px-8 pb-6">
+            <Button variant="outline" className="flex-1" onClick={() => setIsTerminateConfirmOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              disabled={!terminateReason.trim()}
+              onClick={async () => {
+                if (selected) {
+                  await handleSetStatus(selected.id, "Ditolak", terminateReason)
+                  setIsTerminateConfirmOpen(false)
+                  setSelected(null)
+                }
+              }}
+            >
+              <XCircle className="mr-1.5 h-4 w-4" /> Ya, Akhiri
             </Button>
           </div>
         </DialogContent>
