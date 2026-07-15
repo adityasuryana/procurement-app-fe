@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { User, Lock, Eye, EyeOff, Loader2, ArrowRight, Sun, Moon } from "lucide-react"
+import { User, Lock, Eye, EyeOff, Loader2, ArrowRight, Sun, Moon, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 
@@ -11,6 +11,8 @@ export default function PortalPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotUsername, setForgotUsername] = useState("")
 
   const { setTheme, theme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -144,6 +146,17 @@ export default function PortalPage() {
             </div>
           </div>
 
+          {/* Lupa Password Link */}
+          <div className="flex justify-end -mt-2">
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(true)}
+              className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+            >
+              Lupa Password?
+            </button>
+          </div>
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -164,6 +177,59 @@ export default function PortalPage() {
           </button>
         </form>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs px-4">
+          <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6 shadow-2xl w-full max-w-sm flex flex-col space-y-4 animate-in fade-in zoom-in-95 duration-200 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-neutral-800">
+              <h3 className="text-sm font-bold">Lupa Password</h3>
+              <button
+                onClick={() => { setShowForgotModal(false); setForgotUsername("") }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <p className="text-xs text-slate-500 dark:text-neutral-400 leading-relaxed">
+              Untuk mereset password, silakan kirim email permohonan ke tim IT Support di <span className="font-bold text-primary">it@dea-corp.co.id</span>.
+            </p>
+            
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">Username / Nama Anda</label>
+              <input
+                type="text"
+                value={forgotUsername}
+                onChange={(e) => setForgotUsername(e.target.value)}
+                placeholder="Masukkan username atau nama lengkap"
+                className="w-full bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 focus:border-primary/80 rounded-xl py-2 px-3 text-xs outline-hidden focus:ring-2 focus:ring-primary/10 text-slate-900 dark:text-white placeholder:text-slate-400"
+              />
+            </div>
+            
+            <div className="flex gap-2.5 justify-end pt-1">
+              <button
+                onClick={() => { setShowForgotModal(false); setForgotUsername("") }}
+                className="px-4 py-2 border rounded-xl text-xs font-semibold hover:bg-slate-50 dark:hover:bg-neutral-800 border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-neutral-300 transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => {
+                  const subject = encodeURIComponent("Permohonan Reset Password Akun Portal DEA")
+                  const body = encodeURIComponent(`Halo IT Support PT Duta Esa Adiperkasa,\n\nSaya ingin mengajukan permohonan reset password untuk akun saya.\n\nUsername/Nama: ${forgotUsername || "—"}\n\nTerima kasih.`)
+                  window.location.href = `mailto:it@dea-corp.co.id?subject=${subject}&body=${body}`
+                  setShowForgotModal(false)
+                  setForgotUsername("")
+                }}
+                className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl text-xs shadow-md transition-colors cursor-pointer"
+              >
+                Kirim Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

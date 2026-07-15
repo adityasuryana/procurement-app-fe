@@ -88,7 +88,7 @@ export function NavUser({
                 }}
               >
                 <User />
-                Account
+                Akun Saya
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -100,7 +100,7 @@ export function NavUser({
               }}
             >
               <LogOut />
-              Log out
+              Keluar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

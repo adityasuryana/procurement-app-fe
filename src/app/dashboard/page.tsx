@@ -62,10 +62,10 @@ function timeAgo(dateStr: string) {
 export default async function DashboardPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
 
-  // Fetch all data in parallel
   let partners: Partner[] = []
   let careers: Career[] = []
   let qrCount = 0
+  let qrInventoryCount = 0
 
   await Promise.allSettled([
     fetch(`${apiUrl}/api/partner`, { cache: "no-store" })
@@ -79,6 +79,10 @@ export default async function DashboardPage() {
     fetch(`${apiUrl}/api/qrcontact`, { cache: "no-store" })
       .then((r) => r.ok ? r.json() : [])
       .then((d) => { qrCount = Array.isArray(d) ? d.length : 0 }),
+
+    fetch(`${apiUrl}/api/qrinventory`, { cache: "no-store" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => { qrInventoryCount = Array.isArray(d) ? d.length : 0 }),
   ])
 
   // Compute stats
@@ -128,13 +132,13 @@ export default async function DashboardPage() {
       href: "/dashboard/karir",
     },
     {
-      label: "Kontak QR",
-      value: qrCount,
-      sub: "QR code terdaftar",
+      label: "Kelola QR",
+      value: qrCount + qrInventoryCount,
+      sub: "Total QR code terdaftar",
       icon: QrCode,
       gradient: "from-orange-500/20 to-orange-500/5",
       iconBg: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/20",
-      href: "/dashboard/kontak-qr",
+      href: "/dashboard/kelola-qr",
     },
   ]
 
@@ -350,7 +354,7 @@ export default async function DashboardPage() {
             {[
               { label: "Kelola Mitra", desc: "Lihat & setujui mitra", icon: Users, href: "/dashboard/mitra", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-500/10 border-violet-500/20 hover:bg-violet-500/20" },
               { label: "Kelola Karir", desc: "Atur lowongan kerja", icon: Briefcase, href: "/dashboard/karir", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20" },
-              { label: "Kontak QR", desc: "Manajemen QR kontak", icon: QrCode, href: "/dashboard/kontak-qr", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20" },
+              { label: "Kelola QR", desc: "Manajemen QR kontak & aset", icon: QrCode, href: "/dashboard/kelola-qr", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20" },
               { label: "Kelola Akun", desc: "Manajemen pengguna", icon: Building2, href: "/dashboard/kelola-akun", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20" },
             ].map((action) => (
               <Link

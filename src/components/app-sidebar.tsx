@@ -46,8 +46,8 @@ const allNavItems = [
       isActive: true,
     },
     {
-      title: "Kontak QR",
-      url: "/dashboard/kontak-qr",
+      title: "Kelola QR",
+      url: "/dashboard/kelola-qr",
       icon: QrCode,
     },
     {

@@ -12,7 +12,7 @@ export function DynamicBreadcrumb() {
   const pathname = usePathname()
 
   let title = "Dashboard"
-  if (pathname.includes("/qr-contact") || pathname.includes("/kontak-qr")) title = "Kontak QR"
+  if (pathname.includes("/qr-contact") || pathname.includes("/kontak-qr") || pathname.includes("/kelola-qr")) title = "Kelola QR"
   else if (pathname.includes("/mitra")) title = "Mitra"
   else if (pathname.includes("/karir")) title = "Karir"
   else if (pathname.includes("/removable-tower")) title = "Removable Tower"
