@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   let partners: Partner[] = []
   let careers: Career[] = []
   let qrCount = 0
-  let qrInventoryCount = 0
+  let qrAssetCount = 0
 
   await Promise.allSettled([
     fetch(`${apiUrl}/api/partner`, { cache: "no-store" })
@@ -80,9 +80,9 @@ export default async function DashboardPage() {
       .then((r) => r.ok ? r.json() : [])
       .then((d) => { qrCount = Array.isArray(d) ? d.length : 0 }),
 
-    fetch(`${apiUrl}/api/qrinventory`, { cache: "no-store" })
+    fetch(`${apiUrl}/api/qrasset`, { cache: "no-store" })
       .then((r) => r.ok ? r.json() : [])
-      .then((d) => { qrInventoryCount = Array.isArray(d) ? d.length : 0 }),
+      .then((d) => { qrAssetCount = Array.isArray(d) ? d.length : 0 }),
   ])
 
   // Compute stats
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
     },
     {
       label: "Kelola QR",
-      value: qrCount + qrInventoryCount,
+      value: qrCount + qrAssetCount,
       sub: "Total QR code terdaftar",
       icon: QrCode,
       gradient: "from-orange-500/20 to-orange-500/5",

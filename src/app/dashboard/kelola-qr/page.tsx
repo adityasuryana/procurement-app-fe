@@ -45,14 +45,13 @@ export type QRContact = {
   website?: string
 }
 
-export type QRInventory = {
+export type QRAsset = {
   id: string | number
   name: string
   code: string
   category: string
   location: string
   status: string
-  quantity: number
   description?: string
   createdAt?: string
   updatedAt?: string
@@ -82,8 +81,8 @@ function generateVCard(contact: Pick<QRContact, "firstName" | "lastName" | "emai
   return `BEGIN:VCARD\nVERSION:3.0\nN:${contact.lastName};${contact.firstName};;;\nFN:${contact.firstName} ${contact.lastName}\nORG:PT Duta Esa Adiperkasa\nEMAIL;type=WORK:${contact.email}\nTEL;type=WORK:${contact.phone}\nTITLE:${contact.position}\nURL:https://dea-corp.co.id\nEND:VCARD`
 }
 
-function generateInventoryText(item: Pick<QRInventory, "name" | "code" | "category" | "location" | "status" | "quantity" | "description">) {
-  return `[INFORMASI INVENTORY]\nNama Barang : ${item.name}\nKode Asset  : ${item.code}\nKategori    : ${item.category}\nJumlah      : ${item.quantity} Unit\nStatus      : ${item.status}\nLokasi      : ${item.location}\nDeskripsi   : ${item.description || '-'}`
+function generateAssetText(item: Pick<QRAsset, "name" | "code" | "category" | "location" | "status" | "description">) {
+  return `[INFORMASI ASET]\nNama Barang : ${item.name}\nKode Asset  : ${item.code}\nKategori    : ${item.category}\nStatus      : ${item.status}\nLokasi      : ${item.location}\nDeskripsi   : ${item.description || '-'}`
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
@@ -199,7 +198,7 @@ function QRContactCard({ contact, onDelete, onDownload }: { contact: QRContact; 
 
 // ─── Inventory QR Card Component ──────────────────────────────────────────────
 
-function QRInventoryCard({ item, onDelete, onDownload, getInventoryScanUrl }: { item: QRInventory; onDelete: (i: QRInventory) => void; onDownload: (i: QRInventory) => void; getInventoryScanUrl: (item: any) => string }) {
+function QRAssetCard({ item, onDelete, onDownload, getAssetScanUrl }: { item: QRAsset; onDelete: (i: QRAsset) => void; onDownload: (i: QRAsset) => void; getAssetScanUrl: (item: any) => string }) {
   const dateStr = item.createdAt
     ? new Date(item.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
     : "—"
@@ -207,7 +206,7 @@ function QRInventoryCard({ item, onDelete, onDownload, getInventoryScanUrl }: { 
   // Dynamic style based on status
   let statusBadgeClass = ""
   switch (item.status) {
-    case "Baik":
+    case "Disimpan":
       statusBadgeClass = "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40"
       break
     case "Rusak":
@@ -271,10 +270,6 @@ function QRInventoryCard({ item, onDelete, onDownload, getInventoryScanUrl }: { 
             <MapPin className="w-3.5 h-3.5 shrink-0 text-primary/70" />
             <span className="truncate">{item.location}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sliders className="w-3.5 h-3.5 shrink-0 text-primary/70" />
-            <span className="truncate font-semibold text-foreground">Jumlah: {item.quantity} unit</span>
-          </div>
           <div className="pt-1">
             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass}`}>
               <Activity className="w-3 h-3" />
@@ -285,8 +280,23 @@ function QRInventoryCard({ item, onDelete, onDownload, getInventoryScanUrl }: { 
 
         {/* QR Code */}
         <div className="shrink-0 flex flex-col items-center gap-2">
-          <div className="bg-white border border-border rounded-xl p-2 shadow-xs">
-            <QRCodeSVG id={`qr-inventory-${item.id}`} value={getInventoryScanUrl(item)} size={88} />
+          <div className="bg-white border border-border rounded-xl p-2.5 shadow-xs flex flex-col items-center gap-1.5">
+            <div className="relative w-[88px] h-[88px] flex items-center justify-center">
+              <img
+                src="/dea-logo.png"
+                alt="DEA Logo"
+                className="absolute w-[70px] h-[70px] object-contain opacity-20 pointer-events-none select-none"
+              />
+              <QRCodeSVG
+                id={`qr-asset-${item.id}`}
+                value={getAssetScanUrl(item)}
+                size={88}
+                bgColor="transparent"
+              />
+            </div>
+            <span className="text-[9px] font-extrabold text-muted-foreground font-mono tracking-wider uppercase select-all">
+              {item.code}
+            </span>
           </div>
         </div>
       </div>
@@ -314,13 +324,13 @@ function QRInventoryCard({ item, onDelete, onDownload, getInventoryScanUrl }: { 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const EMPTY_CONTACT_FORM = { firstName: "", lastName: "", phone: "", email: "", position: "" }
-const EMPTY_INVENTORY_FORM = { name: "", code: "", category: "Elektronik", location: "", status: "Baik", quantity: 1, description: "" }
+const EMPTY_ASSET_FORM = { name: "", code: "", category: "Elektronik", location: "", status: "Disimpan", description: "" }
 
 export default function KelolaQRPage() {
-  const [activeTab, setActiveTab] = useState<"vcard" | "inventory">("vcard")
+  const [activeTab, setActiveTab] = useState<"vcard" | "asset">("vcard")
   const [serverIp, setServerIp] = useState("127.0.0.1")
 
-  const getInventoryScanUrl = (item: QRInventory | typeof EMPTY_INVENTORY_FORM) => {
+  const getAssetScanUrl = (item: QRAsset | typeof EMPTY_ASSET_FORM) => {
     let baseOrigin = "http://localhost:3000"
     
     if (typeof window !== "undefined") {
@@ -339,7 +349,6 @@ export default function KelolaQRPage() {
       category: item.category,
       location: item.location,
       status: item.status,
-      quantity: String(item.quantity),
       description: item.description || ""
     })
     return `${baseOrigin}/public/scan?${params.toString()}`
@@ -351,21 +360,21 @@ export default function KelolaQRPage() {
   const [contactsSearch, setContactsSearch] = useState("")
   const [contactsPage, setContactsPage] = useState(1)
 
-  // Inventory data state
-  const [inventories, setInventories] = useState<QRInventory[]>([])
-  const [isInventoryLoading, setIsInventoryLoading] = useState(true)
-  const [inventorySearch, setInventorySearch] = useState("")
-  const [inventoryPage, setInventoryPage] = useState(1)
+  // Asset data state
+  const [assets, setAssets] = useState<QRAsset[]>([])
+  const [isAssetLoading, setIsAssetLoading] = useState(true)
+  const [assetSearch, setAssetSearch] = useState("")
+  const [assetPage, setAssetPage] = useState(1)
 
   // Modals
   const [showAddContact, setShowAddContact] = useState(false)
-  const [showAddInventory, setShowAddInventory] = useState(false)
+  const [showAddAsset, setShowAddAsset] = useState(false)
   const [deleteContactTarget, setDeleteContactTarget] = useState<QRContact | null>(null)
-  const [deleteInventoryTarget, setDeleteInventoryTarget] = useState<QRInventory | null>(null)
+  const [deleteAssetTarget, setDeleteAssetTarget] = useState<QRAsset | null>(null)
 
   // Forms
   const [contactForm, setContactForm] = useState(EMPTY_CONTACT_FORM)
-  const [inventoryForm, setInventoryForm] = useState(EMPTY_INVENTORY_FORM)
+  const [assetForm, setAssetForm] = useState(EMPTY_ASSET_FORM)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -392,25 +401,25 @@ export default function KelolaQRPage() {
     }
   }
 
-  // ── Fetch Inventories ─────────────────────────────────────────────────────
-  const fetchInventories = async () => {
-    setIsInventoryLoading(true)
+  // ── Fetch Assets ─────────────────────────────────────────────────────
+  const fetchAssets = async () => {
+    setIsAssetLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/qrinventory`)
+      const res = await fetch(`${API_URL}/api/qrasset`)
       const data = res.ok ? await res.json() : []
-      setInventories([...data].sort((a: QRInventory, b: QRInventory) =>
+      setAssets([...data].sort((a: QRAsset, b: QRAsset) =>
         new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
       ))
     } catch {
-      setInventories([])
+      setAssets([])
     } finally {
-      setIsInventoryLoading(false)
+      setIsAssetLoading(false)
     }
   }
 
   useEffect(() => {
     fetchContacts()
-    fetchInventories()
+    fetchAssets()
 
     const fetchServerIp = async () => {
       try {
@@ -440,20 +449,20 @@ export default function KelolaQRPage() {
   const totalContactPages = Math.max(1, Math.ceil(filteredContacts.length / ITEMS_PER_PAGE))
   const paginatedContacts = filteredContacts.slice((contactsPage - 1) * ITEMS_PER_PAGE, contactsPage * ITEMS_PER_PAGE)
 
-  // ── Filter & Paginate Inventory ──────────────────────────────────────────
-  const filteredInventory = useMemo(() => {
-    const q = inventorySearch.toLowerCase()
-    return inventories.filter(i =>
+  // ── Filter & Paginate Asset ──────────────────────────────────────────
+  const filteredAsset = useMemo(() => {
+    const q = assetSearch.toLowerCase()
+    return assets.filter(i =>
       i.name?.toLowerCase().includes(q) ||
       i.code?.toLowerCase().includes(q) ||
       i.category?.toLowerCase().includes(q) ||
       i.location?.toLowerCase().includes(q) ||
       i.status?.toLowerCase().includes(q)
     )
-  }, [inventories, inventorySearch])
+  }, [assets, assetSearch])
 
-  const totalInventoryPages = Math.max(1, Math.ceil(filteredInventory.length / ITEMS_PER_PAGE))
-  const paginatedInventory = filteredInventory.slice((inventoryPage - 1) * ITEMS_PER_PAGE, inventoryPage * ITEMS_PER_PAGE)
+  const totalAssetPages = Math.max(1, Math.ceil(filteredAsset.length / ITEMS_PER_PAGE))
+  const paginatedAsset = filteredAsset.slice((assetPage - 1) * ITEMS_PER_PAGE, assetPage * ITEMS_PER_PAGE)
 
   // ── Contact Handlers ─────────────────────────────────────────────────────
   const isContactFormValid = Boolean(
@@ -533,34 +542,33 @@ export default function KelolaQRPage() {
     showToast(`QR Code "${contact.firstName} ${contact.lastName}" diunduh`)
   }
 
-  // ── Inventory Handlers ───────────────────────────────────────────────────
-  const isInventoryFormValid = Boolean(
-    inventoryForm.name.trim() &&
-    inventoryForm.code.trim() &&
-    inventoryForm.category.trim() &&
-    inventoryForm.location.trim() &&
-    inventoryForm.status.trim() &&
-    inventoryForm.quantity > 0
+  // ── Asset Handlers ───────────────────────────────────────────────────
+  const isAssetFormValid = Boolean(
+    assetForm.name.trim() &&
+    assetForm.code.trim() &&
+    assetForm.category.trim() &&
+    assetForm.location.trim() &&
+    assetForm.status.trim()
   )
 
-  const handleSaveInventory = async () => {
-    if (!isInventoryFormValid) return
+  const handleSaveAsset = async () => {
+    if (!isAssetFormValid) return
     setIsSaving(true)
     try {
-      const res = await fetch(`${API_URL}/api/qrinventory`, {
+      const res = await fetch(`${API_URL}/api/qrasset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(inventoryForm),
+        body: JSON.stringify(assetForm),
       })
       const data = await res.json()
       if (res.ok) {
-        setInventories(prev => [data, ...prev])
-        setShowAddInventory(false)
-        setInventoryForm(EMPTY_INVENTORY_FORM)
-        setInventoryPage(1)
-        showToast(`QR Inventory "${inventoryForm.name}" berhasil dibuat`)
+        setAssets(prev => [data, ...prev])
+        setShowAddAsset(false)
+        setAssetForm(EMPTY_ASSET_FORM)
+        setAssetPage(1)
+        showToast(`QR Aset "${assetForm.name}" berhasil dibuat`)
       } else {
-        showToast(data.error || "Gagal menyimpan item inventory", "error")
+        showToast(data.error || "Gagal menyimpan item aset", "error")
       }
     } catch {
       showToast("Gagal terhubung ke server", "error")
@@ -569,14 +577,14 @@ export default function KelolaQRPage() {
     }
   }
 
-  const handleDeleteInventory = async () => {
-    if (!deleteInventoryTarget) return
+  const handleDeleteAsset = async () => {
+    if (!deleteAssetTarget) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`${API_URL}/api/qrinventory/${deleteInventoryTarget.id}`, { method: "DELETE" })
+      const res = await fetch(`${API_URL}/api/qrasset/${deleteAssetTarget.id}`, { method: "DELETE" })
       if (res.ok) {
-        setInventories(prev => prev.filter(i => i.id !== deleteInventoryTarget.id))
-        showToast(`Barang "${deleteInventoryTarget.name}" berhasil dihapus`)
+        setAssets(prev => prev.filter(i => i.id !== deleteAssetTarget.id))
+        showToast(`Barang "${deleteAssetTarget.name}" berhasil dihapus`)
       } else {
         showToast("Gagal menghapus barang", "error")
       }
@@ -584,46 +592,103 @@ export default function KelolaQRPage() {
       showToast("Gagal terhubung ke server", "error")
     } finally {
       setIsDeleting(false)
-      setDeleteInventoryTarget(null)
+      setDeleteAssetTarget(null)
     }
   }
 
-  const handleDownloadInventory = (item: QRInventory) => {
-    const svg = document.getElementById(`qr-inventory-${item.id}`)
+  const handleDownloadAsset = (item: QRAsset) => {
+    const svg = document.getElementById(`qr-asset-${item.id}`)
     if (!svg) return
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement("canvas")
     const ctx = canvas.getContext("2d")
-    const img = new Image()
-    img.onload = () => {
-      canvas.width = img.width * 4
-      canvas.height = img.height * 4
-      if (ctx) {
-        ctx.fillStyle = "white"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        const a = document.createElement("a")
-        a.download = `QR_Inventory_${item.code}.png`
-        a.href = canvas.toDataURL("image/png")
-        a.click()
+    
+    const logoImg = new Image()
+    logoImg.src = "/dea-logo.png"
+    
+    const qrImg = new Image()
+    
+    logoImg.onload = () => {
+      qrImg.onload = () => {
+        const qrSize = qrImg.width * 4 // 352 px
+        const padding = 32
+        const headerHeight = 70
+        const footerHeight = 60
+        
+        canvas.width = qrSize + padding * 2 // 416 px
+        canvas.height = qrSize + padding * 2 + headerHeight + footerHeight // 548 px
+        
+        if (ctx) {
+          // Fill background with white
+          ctx.fillStyle = "white"
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+          
+          // Draw clean rounded border around card
+          ctx.strokeStyle = "#cbd5e1" // slate-300
+          ctx.lineWidth = 3
+          ctx.beginPath()
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(12, 12, canvas.width - 24, canvas.height - 24, 20)
+          } else {
+            ctx.rect(12, 12, canvas.width - 24, canvas.height - 24)
+          }
+          ctx.stroke()
+          
+          // Draw Corporate Header at the top
+          ctx.fillStyle = "#0f172a" // slate-900
+          ctx.font = "bold 16px sans-serif"
+          ctx.textAlign = "center"
+          ctx.fillText("PT DUTA ESA ADIPERKASA", canvas.width / 2, 42)
+          
+          ctx.fillStyle = "#64748b" // slate-500
+          ctx.font = "bold 9px sans-serif"
+          ctx.fillText("ASET TERVERIFIKASI", canvas.width / 2, 58)
+          
+          // Draw logo in the background, preserving aspect ratio (no stretching/gepeng)
+          ctx.save()
+          ctx.globalAlpha = 0.28
+          const aspect = logoImg.width / logoImg.height
+          const targetW = qrSize * 0.8
+          const targetH = targetW / aspect
+          const logoX = (canvas.width - targetW) / 2
+          const logoY = headerHeight + padding + (qrSize - targetH) / 2
+          ctx.drawImage(logoImg, logoX, logoY, targetW, targetH)
+          ctx.restore()
+          
+          // Draw QR Code SVG on top
+          ctx.drawImage(qrImg, padding, headerHeight + padding, qrSize, qrSize)
+          
+          // Draw Asset Code text centered below the QR code
+          ctx.fillStyle = "#3c58b9" // Corporate blue color matching DEA logo
+          ctx.font = "bold 26px monospace"
+          ctx.textAlign = "center"
+          ctx.textBaseline = "middle"
+          const textY = headerHeight + padding * 2 + qrSize + footerHeight / 2
+          ctx.fillText(item.code.toUpperCase(), canvas.width / 2, textY)
+          
+          const a = document.createElement("a")
+          a.download = `QR_Aset_${item.code}.png`
+          a.href = canvas.toDataURL("image/png")
+          a.click()
+        }
       }
+      qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
     }
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
-    showToast(`QR Code Inventory "${item.name}" diunduh`)
+    showToast(`QR Code Aset "${item.name}" diunduh`)
   }
 
   const inputClass = "w-full bg-background border border-input rounded-xl py-2 pl-9 pr-4 text-xs text-foreground outline-none focus:border-primary/80 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/50"
   const selectClass = "w-full bg-background border border-input rounded-xl py-2 px-3 text-xs text-foreground outline-none focus:border-primary/80 focus:ring-2 focus:ring-primary/10 transition-all"
 
-  // Calculate Inventory stats
-  const invStats = useMemo(() => {
-    const total = inventories.length
-    const baik = inventories.filter(i => i.status === "Baik").length
-    const rusak = inventories.filter(i => i.status === "Rusak").length
-    const repair = inventories.filter(i => i.status === "Dalam Perbaikan").length
-    const digunakan = inventories.filter(i => i.status === "Digunakan").length
-    return { total, baik, rusak, repair, digunakan }
-  }, [inventories])
+  // Calculate Asset stats
+  const assetStats = useMemo(() => {
+    const total = assets.length
+    const disimpan = assets.filter(i => i.status === "Disimpan").length
+    const rusak = assets.filter(i => i.status === "Rusak").length
+    const repair = assets.filter(i => i.status === "Dalam Perbaikan").length
+    const digunakan = assets.filter(i => i.status === "Digunakan").length
+    return { total, disimpan, rusak, repair, digunakan }
+  }, [assets])
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -637,7 +702,7 @@ export default function KelolaQRPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Kelola QR</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manajemen kode QR digital untuk VCard Kontak dan Inventory Barang Perusahaan.
+            Manajemen kode QR digital untuk VCard Kontak dan Aset Barang Perusahaan.
           </p>
         </div>
 
@@ -651,11 +716,11 @@ export default function KelolaQRPage() {
           </Button>
         ) : (
           <Button
-            onClick={() => { setShowAddInventory(true); setInventoryForm(EMPTY_INVENTORY_FORM) }}
+            onClick={() => { setShowAddAsset(true); setAssetForm(EMPTY_ASSET_FORM) }}
             className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl text-xs px-4 h-9"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Tambah Barang QR
+            Tambah Aset QR
           </Button>
         )}
       </div>
@@ -674,15 +739,15 @@ export default function KelolaQRPage() {
           <span>VCard Kontak</span>
         </button>
         <button
-          onClick={() => setActiveTab("inventory")}
+          onClick={() => setActiveTab("asset")}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${
-            activeTab === "inventory"
+            activeTab === "asset"
               ? "border-primary text-primary font-bold"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           <Package className="w-4 h-4" />
-          <span>QR Inventory</span>
+          <span>QR Aset</span>
         </button>
       </div>
 
@@ -780,30 +845,30 @@ export default function KelolaQRPage() {
         </div>
       )}
 
-      {/* ── INVENTORY TAB CONTENT ───────────────────────────────────────────── */}
-      {activeTab === "inventory" && (
+      {/* ── ASSET TAB CONTENT ───────────────────────────────────────────── */}
+      {activeTab === "asset" && (
         <div className="space-y-6">
           {/* Stats cards for assets */}
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
             <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Barang</span>
-              <span className="text-2xl font-extrabold text-foreground mt-2">{invStats.total}</span>
+              <span className="text-2xl font-extrabold text-foreground mt-2">{assetStats.total}</span>
             </div>
             <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kondisi Baik</span>
-              <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">{invStats.baik}</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Disimpan</span>
+              <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">{assetStats.disimpan}</span>
             </div>
             <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Sedang Digunakan</span>
-              <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">{invStats.digunakan}</span>
+              <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">{assetStats.digunakan}</span>
             </div>
             <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Dalam Perbaikan</span>
-              <span className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-2">{invStats.repair}</span>
+              <span className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-2">{assetStats.repair}</span>
             </div>
             <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kondisi Rusak</span>
-              <span className="text-2xl font-extrabold text-red-600 dark:text-red-400 mt-2">{invStats.rusak}</span>
+              <span className="text-2xl font-extrabold text-red-600 dark:text-red-400 mt-2">{assetStats.rusak}</span>
             </div>
           </div>
 
@@ -813,64 +878,64 @@ export default function KelolaQRPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
               <input
                 type="text"
-                value={inventorySearch}
-                onChange={(e) => { setInventorySearch(e.target.value); setInventoryPage(1) }}
+                value={assetSearch}
+                onChange={(e) => { setAssetSearch(e.target.value); setAssetPage(1) }}
                 placeholder="Cari barang, kode, kategori, lokasi..."
                 className={inputClass}
               />
             </div>
-            {inventorySearch && (
+            {assetSearch && (
               <span className="text-xs text-primary font-semibold">
-                Ditemukan {filteredInventory.length} barang
+                Ditemukan {filteredAsset.length} barang
               </span>
             )}
           </div>
 
           {/* Grid */}
-          {isInventoryLoading ? (
+          {isAssetLoading ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin" />
-              <span className="text-xs">Memuat data inventory...</span>
+              <span className="text-xs">Memuat data aset...</span>
             </div>
-          ) : paginatedInventory.length === 0 ? (
+          ) : paginatedAsset.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 border border-dashed rounded-2xl gap-3 text-muted-foreground">
               <Box className="w-10 h-10 opacity-25" />
-              <p className="text-xs">{inventorySearch ? "Tidak ada barang yang cocok" : "Belum ada barang di inventory"}</p>
-              {!inventorySearch && (
-                <Button onClick={() => setShowAddInventory(true)} variant="outline" className="text-xs rounded-xl px-4 h-8">
+              <p className="text-xs">{assetSearch ? "Tidak ada barang yang cocok" : "Belum ada barang di aset"}</p>
+              {!assetSearch && (
+                <Button onClick={() => setShowAddAsset(true)} variant="outline" className="text-xs rounded-xl px-4 h-8">
                   <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Barang Pertama
                 </Button>
               )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {paginatedInventory.map(item => (
-                <QRInventoryCard key={item.id} item={item} onDelete={setDeleteInventoryTarget} onDownload={handleDownloadInventory} getInventoryScanUrl={getInventoryScanUrl} />
+              {paginatedAsset.map(item => (
+                <QRAssetCard key={item.id} item={item} onDelete={setDeleteAssetTarget} onDownload={handleDownloadAsset} getAssetScanUrl={getAssetScanUrl} />
               ))}
             </div>
           )}
 
           {/* Pagination */}
-          {filteredInventory.length > ITEMS_PER_PAGE && (
+          {filteredAsset.length > ITEMS_PER_PAGE && (
             <div className="flex items-center justify-between pt-2 border-t flex-wrap gap-3">
               <p className="text-xs text-muted-foreground">
-                Halaman <span className="font-semibold text-foreground">{inventoryPage}</span> dari{" "}
-                <span className="font-semibold text-foreground">{totalInventoryPages}</span> · {filteredInventory.length} barang
+                Halaman <span className="font-semibold text-foreground">{assetPage}</span> dari{" "}
+                <span className="font-semibold text-foreground">{totalAssetPages}</span> · {filteredAsset.length} barang
               </p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setInventoryPage(p => Math.max(p - 1, 1))}
-                  disabled={inventoryPage === 1}
+                  onClick={() => setAssetPage(p => Math.max(p - 1, 1))}
+                  disabled={assetPage === 1}
                   className="w-8 h-8 rounded-xl border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                {Array.from({ length: totalInventoryPages }, (_, i) => i + 1).map(n => (
+                {Array.from({ length: totalAssetPages }, (_, i) => i + 1).map(n => (
                   <button
                     key={n}
-                    onClick={() => setInventoryPage(n)}
+                    onClick={() => setAssetPage(n)}
                     className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${
-                      n === inventoryPage
+                      n === assetPage
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
@@ -879,8 +944,8 @@ export default function KelolaQRPage() {
                   </button>
                 ))}
                 <button
-                  onClick={() => setInventoryPage(p => Math.min(p + 1, totalInventoryPages))}
-                  disabled={inventoryPage === totalInventoryPages}
+                  onClick={() => setAssetPage(p => Math.min(p + 1, totalAssetPages))}
+                  disabled={assetPage === totalAssetPages}
                   className="w-8 h-8 rounded-xl border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -968,36 +1033,25 @@ export default function KelolaQRPage() {
         </Modal>
       )}
 
-      {/* ── Add Inventory Modal ── */}
-      {showAddInventory && (
-        <Modal title="Tambah Barang QR Baru" onClose={() => setShowAddInventory(false)}>
+      {/* ── Add Asset Modal ── */}
+      {showAddAsset && (
+        <Modal title="Tambah Aset QR Baru" onClose={() => setShowAddAsset(false)}>
           <div className="p-6 space-y-4">
             {/* Nama Barang */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nama Barang *</label>
               <div className="relative">
                 <Box className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                <input type="text" value={inventoryForm.name} onChange={e => setInventoryForm(i => ({ ...i, name: e.target.value }))} placeholder="Contoh: MacBook Pro M3" className={inputClass} />
+                <input type="text" value={assetForm.name} onChange={e => setAssetForm(i => ({ ...i, name: e.target.value }))} placeholder="Contoh: MacBook Pro M3" className={inputClass} />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Kode Inventory */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kode Inventory *</label>
-                <div className="relative">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                  <input type="text" value={inventoryForm.code} onChange={e => setInventoryForm(i => ({ ...i, code: e.target.value.toUpperCase() }))} placeholder="INV-001" className={inputClass} />
-                </div>
-              </div>
-
-              {/* Jumlah */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Jumlah (Unit) *</label>
-                <div className="relative">
-                  <Sliders className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                  <input type="number" min={1} value={inventoryForm.quantity} onChange={e => setInventoryForm(i => ({ ...i, quantity: Math.max(1, parseInt(e.target.value) || 1) }))} className={inputClass} />
-                </div>
+            {/* Kode Aset */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kode Aset *</label>
+              <div className="relative">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                <input type="text" value={assetForm.code} onChange={e => setAssetForm(i => ({ ...i, code: e.target.value.toUpperCase() }))} placeholder="INV-001" className={inputClass} />
               </div>
             </div>
 
@@ -1005,8 +1059,11 @@ export default function KelolaQRPage() {
               {/* Kategori */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kategori *</label>
-                <select value={inventoryForm.category} onChange={e => setInventoryForm(i => ({ ...i, category: e.target.value }))} className={selectClass}>
+                <select value={assetForm.category} onChange={e => setAssetForm(i => ({ ...i, category: e.target.value }))} className={selectClass}>
                   <option value="Elektronik">Elektronik</option>
+                  <option value="Laptop">Laptop</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Monitor">Monitor</option>
                   <option value="Furnitur">Furnitur</option>
                   <option value="Alat Kantor">Alat Kantor</option>
                   <option value="Kendaraan">Kendaraan</option>
@@ -1017,8 +1074,8 @@ export default function KelolaQRPage() {
               {/* Status */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status Awal *</label>
-                <select value={inventoryForm.status} onChange={e => setInventoryForm(i => ({ ...i, status: e.target.value }))} className={selectClass}>
-                  <option value="Baik">Baik (Good)</option>
+                <select value={assetForm.status} onChange={e => setAssetForm(i => ({ ...i, status: e.target.value }))} className={selectClass}>
+                  <option value="Disimpan">Disimpan</option>
                   <option value="Digunakan">Digunakan (In Use)</option>
                   <option value="Rusak">Rusak (Broken)</option>
                   <option value="Dalam Perbaikan">Dalam Perbaikan (Repair)</option>
@@ -1029,10 +1086,22 @@ export default function KelolaQRPage() {
 
             {/* Lokasi */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Lokasi Penempatan *</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {assetForm.category.toLowerCase() === "laptop" ? "Nama Pemakai Laptop *" : "Lokasi Penempatan *"}
+              </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                <input type="text" value={inventoryForm.location} onChange={e => setInventoryForm(i => ({ ...i, location: e.target.value }))} placeholder="Contoh: Gudang Utama / Ruang Kerja Lantai 2" className={inputClass} />
+                {assetForm.category.toLowerCase() === "laptop" ? (
+                  <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                ) : (
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                )}
+                <input
+                  type="text"
+                  value={assetForm.location}
+                  onChange={e => setAssetForm(i => ({ ...i, location: e.target.value }))}
+                  placeholder={assetForm.category.toLowerCase() === "laptop" ? "Contoh: Aditya Suryana - IT" : "Contoh: Gudang Utama / Ruang Kerja Lantai 2"}
+                  className={inputClass}
+                />
               </div>
             </div>
 
@@ -1041,28 +1110,39 @@ export default function KelolaQRPage() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Deskripsi / Keterangan</label>
               <div className="relative">
                 <FileText className="absolute left-3 top-2.5 w-3.5 h-3.5 text-muted-foreground/60" />
-                <textarea rows={3} value={inventoryForm.description} onChange={e => setInventoryForm(i => ({ ...i, description: e.target.value }))} placeholder="Catatan tambahan spesifikasi barang..." className={`${inputClass} pl-9 h-auto py-2.5`} />
+                <textarea rows={3} value={assetForm.description} onChange={e => setAssetForm(i => ({ ...i, description: e.target.value }))} placeholder="Catatan tambahan spesifikasi barang..." className={`${inputClass} pl-9 h-auto py-2.5`} />
               </div>
             </div>
 
             {/* Live QR Preview */}
-            {inventoryForm.code.trim() && (
+            {assetForm.code.trim() && (
               <div className="flex flex-col items-center gap-3 p-4 bg-muted/30 border border-border rounded-xl">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pratinjau QR Code Inventory</p>
-                <div className="bg-white p-3 rounded-xl border shadow-sm">
-                  <QRCodeSVG value={getInventoryScanUrl(inventoryForm)} size={140} />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pratinjau QR Code Aset</p>
+                <div className="bg-white p-3.5 rounded-xl border shadow-sm flex flex-col items-center gap-2">
+                  <div className="relative w-[140px] h-[140px] flex items-center justify-center">
+                    <img
+                      src="/dea-logo.png"
+                      alt="DEA Logo"
+                      className="absolute w-[110px] h-[110px] object-contain opacity-60 pointer-events-none select-none"
+                    />
+                    <QRCodeSVG
+                      value={getAssetScanUrl(assetForm)}
+                      size={140}
+                      bgColor="transparent"
+                    />
+                  </div>
+                  <span className="text-[10px] font-extrabold text-muted-foreground font-mono tracking-wider uppercase">
+                    {assetForm.code}
+                  </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-semibold">
-                  Mendata Kode: {inventoryForm.code}
-                </p>
               </div>
             )}
 
             <div className="flex gap-3 justify-end pt-1">
-              <Button variant="outline" onClick={() => setShowAddInventory(false)} className="rounded-xl text-xs px-4">Batal</Button>
+              <Button variant="outline" onClick={() => setShowAddAsset(false)} className="rounded-xl text-xs px-4">Batal</Button>
               <Button
-                onClick={handleSaveInventory}
-                disabled={!isInventoryFormValid || isSaving}
+                onClick={handleSaveAsset}
+                disabled={!isAssetFormValid || isSaving}
                 className="px-5 bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl text-xs"
               >
                 {isSaving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Menyimpan...</> : <><QrCode className="w-3.5 h-3.5 mr-1.5" />Simpan & Buat QR</>}
@@ -1099,24 +1179,24 @@ export default function KelolaQRPage() {
         </Modal>
       )}
 
-      {/* ── Delete Inventory Modal ── */}
-      {deleteInventoryTarget && (
-        <Modal title="Hapus Barang QR" onClose={() => setDeleteInventoryTarget(null)}>
+      {/* ── Delete Asset Modal ── */}
+      {deleteAssetTarget && (
+        <Modal title="Hapus Barang QR" onClose={() => setDeleteAssetTarget(null)}>
           <div className="p-6 space-y-4">
             <div className="flex items-start gap-3 p-4 bg-red-50/60 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl">
               <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-red-700 dark:text-red-300">Tindakan ini tidak dapat dibatalkan</p>
                 <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
-                  Barang <span className="font-bold">{deleteInventoryTarget.name}</span> ({deleteInventoryTarget.code}) akan dihapus permanen beserta QR Code-nya.
+                  Barang <span className="font-bold">{deleteAssetTarget.name}</span> ({deleteAssetTarget.code}) akan dihapus permanen beserta QR Code-nya.
                 </p>
               </div>
             </div>
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setDeleteInventoryTarget(null)} className="px-4 rounded-xl text-xs">Batal</Button>
+              <Button variant="outline" onClick={() => setDeleteAssetTarget(null)} className="px-4 rounded-xl text-xs">Batal</Button>
               <Button
                 disabled={isDeleting}
-                onClick={handleDeleteInventory}
+                onClick={handleDeleteAsset}
                 className="px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs"
               >
                 {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5 mr-1.5" />Hapus</>}

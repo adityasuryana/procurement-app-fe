@@ -1,7 +1,7 @@
 "use client"
 
 import React, { Suspense, useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,11 +28,15 @@ type QRAsset = {
   status: string
   quantity: number
   description?: string
+  token?: string
   createdAt?: string
   updatedAt?: string
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
+
 function ScanContent() {
+  const params = useParams()
   const searchParams = useSearchParams()
   const { setTheme, theme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -45,7 +49,9 @@ function ScanContent() {
     setMounted(true)
   }, [])
 
-  const token = searchParams.get("token")
+  // Read token from URL path e.g. /public/scan/a8F3xK
+  // Fall back to query params ?token=... or ?id=... for backward compatibility
+  const token = (params?.token as string) || searchParams.get("token")
   const id = searchParams.get("id")
 
   useEffect(() => {
@@ -184,7 +190,7 @@ function ScanContent() {
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-xs">Memuat informasi aset...</span>
+            <span className="text-xs">Memuat data spesifikasi...</span>
           </div>
         ) : error ? (
           <div className="py-8 flex flex-col items-center justify-center gap-3 text-center">

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Duta Esa Adiperkasa",
   description: "Information Management System",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/favicon-square.svg",
   },
 };
 

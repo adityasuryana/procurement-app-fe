@@ -32,7 +32,7 @@ const data = {
   teams: [
     {
       name: "Duta Esa Adiperkasa",
-      logo: "/dea.png",
+      logo: "/dea-logo.png",
       plan: "Enterprise",
     },
   ],
