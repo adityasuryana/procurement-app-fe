@@ -334,6 +334,107 @@ function QRAssetCard({ item, onEdit, onDelete, onDownload, getAssetScanUrl }: { 
   )
 }
 
+// ─── WiFi QR Card Component ───────────────────────────────────────────────────
+
+function QRWifiCard({
+  wifi,
+  index,
+  onDelete,
+  onDownload,
+  onUse,
+  generateWifiString,
+}: {
+  wifi: { ssid: string; password?: string; encryption: "WPA" | "WEP" | "nopass"; hidden: boolean }
+  index: number
+  onDelete: (idx: number) => void
+  onDownload: (w: any, id: string) => void
+  onUse: (w: any) => void
+  generateWifiString: (w: any) => string
+}) {
+  const grad = getGradient(wifi.ssid)
+  const wifiString = generateWifiString(wifi)
+  const elementId = `qr-wifi-${index}`
+
+  return (
+    <div className="group flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-primary/25 transition-all duration-200">
+      {/* Card Header */}
+      <div className="flex items-start gap-3 p-4 pb-3">
+        {/* Avatar/Icon */}
+        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white shrink-0 shadow-sm`}>
+          <Wifi className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold text-foreground truncate">
+            {wifi.ssid}
+          </h3>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-0.5">
+            {wifi.encryption === "nopass" ? "Terbuka" : wifi.encryption}
+          </p>
+          {wifi.hidden && (
+            <span className="inline-block bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded text-[8px] font-bold mt-1">
+              Hidden SSID
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t mx-4" />
+
+      {/* Body */}
+      <div className="flex items-start gap-3 p-4">
+        {/* Info list */}
+        <div className="flex-1 space-y-2 min-w-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Key className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+            {wifi.encryption === "nopass" ? (
+              <span className="italic text-emerald-600 dark:text-emerald-400 font-medium text-xs">Tanpa Sandi</span>
+            ) : (
+              <span className="truncate font-mono text-foreground font-medium text-xs select-all">{wifi.password}</span>
+            )}
+          </div>
+        </div>
+
+        {/* QR Code */}
+        <div className="shrink-0 flex flex-col items-center gap-2">
+          <div className="bg-white border border-border rounded-xl p-2 shadow-xs relative flex items-center justify-center">
+            <img
+              src="/dea-logo.png"
+              alt="DEA Logo"
+              className="absolute w-[60px] h-[60px] object-contain opacity-20 pointer-events-none select-none"
+            />
+            <QRCodeSVG id={elementId} value={wifiString} size={88} bgColor="transparent" />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="border-t flex">
+        <button
+          onClick={() => onDownload(wifi, elementId)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+        >
+          <Download className="w-3.5 h-3.5" /> Unduh QR
+        </button>
+        <div className="w-px bg-border" />
+        <button
+          onClick={() => onUse(wifi)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Edit
+        </button>
+        <div className="w-px bg-border" />
+        <button
+          onClick={() => onDelete(index)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Hapus
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const EMPTY_CONTACT_FORM = { firstName: "", lastName: "", phone: "", email: "", position: "" }
@@ -414,6 +515,10 @@ export default function KelolaQRPage() {
   const [wifiForm, setWifiForm] = useState({ ssid: "", password: "", encryption: "WPA" as "WPA" | "WEP" | "nopass", hidden: false })
   const [showWifiPassword, setShowWifiPassword] = useState(false)
   const [wifiHistory, setWifiHistory] = useState<Array<typeof wifiForm>>([])
+  const [showAddWifi, setShowAddWifi] = useState(false)
+  const [wifiSearch, setWifiSearch] = useState("")
+  const [wifiPage, setWifiPage] = useState(1)
+  const [deleteWifiTarget, setDeleteWifiTarget] = useState<number | null>(null)
 
   // Load WiFi history on mount
   useEffect(() => {
@@ -453,22 +558,27 @@ export default function KelolaQRPage() {
     setWifiHistory(newHistory)
     localStorage.setItem("wifi_qr_history", JSON.stringify(newHistory))
     showToast(`WiFi "${wifiForm.ssid}" disimpan ke riwayat`)
+    setShowAddWifi(false)
   }
 
-  const handleDeleteWifiHistory = (index: number) => {
-    const newHistory = wifiHistory.filter((_, i) => i !== index)
+  const handleDeleteWifi = () => {
+    if (deleteWifiTarget === null) return
+    const targetName = wifiHistory[deleteWifiTarget]?.ssid || ""
+    const newHistory = wifiHistory.filter((_, i) => i !== deleteWifiTarget)
     setWifiHistory(newHistory)
     localStorage.setItem("wifi_qr_history", JSON.stringify(newHistory))
-    showToast("Riwayat WiFi dihapus")
+    showToast(`Jaringan WiFi "${targetName}" berhasil dihapus`)
+    setDeleteWifiTarget(null)
   }
 
   const loadWifiFromHistory = (w: typeof wifiForm) => {
     setWifiForm(w)
+    setShowAddWifi(true)
     showToast(`Memuat Jaringan "${w.ssid}"`)
   }
 
-  const handleDownloadWifiQr = () => {
-    const svg = document.getElementById("wifi-qr-code")
+  const handleDownloadWifi = (w: typeof wifiForm, elementId: string) => {
+    const svg = document.getElementById(elementId)
     if (!svg) return
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement("canvas")
@@ -635,7 +745,7 @@ export default function KelolaQRPage() {
 
         ctx.font = "bold 34px sans-serif"
         ctx.fillStyle = "#0f172a" // slate-900
-        ctx.fillText(wifiForm.ssid, 230, credY + 115)
+        ctx.fillText(w.ssid, 230, credY + 115)
 
         // Kata Sandi (Password)
         ctx.font = "bold 16px sans-serif"
@@ -643,12 +753,12 @@ export default function KelolaQRPage() {
         ctx.fillText("KATA SANDI / PASSWORD", 230, credY + 183)
 
         ctx.font = "bold 34px sans-serif"
-        if (wifiForm.encryption === "nopass") {
+        if (w.encryption === "nopass") {
           ctx.fillStyle = "#059669" // Emerald green for open wifi
           ctx.fillText("Jaringan Terbuka (Tanpa Sandi)", 230, credY + 230)
         } else {
           ctx.fillStyle = "#0f172a"
-          ctx.fillText(wifiForm.password, 230, credY + 230)
+          ctx.fillText(w.password, 230, credY + 230)
         }
 
         // Draw WiFi Wave Icon on the right side of the credentials box
@@ -687,7 +797,7 @@ export default function KelolaQRPage() {
 
         // Trigger download
         const a = document.createElement("a")
-        a.download = `WIFI_A5_${wifiForm.ssid.replace(/\s+/g, "_")}.png`
+        a.download = `WIFI_A5_${w.ssid.replace(/\s+/g, "_")}.png`
         a.href = canvas.toDataURL("image/png")
         a.click()
       }
@@ -698,6 +808,17 @@ export default function KelolaQRPage() {
     bgImg.src = "/telecom_tower_bg.png"
     qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
   }
+
+  // ── Filter & Paginate WiFi ──────────────────────────────────────────
+  const filteredWifi = useMemo(() => {
+    const q = wifiSearch.toLowerCase()
+    return wifiHistory.filter(w =>
+      w.ssid?.toLowerCase().includes(q)
+    )
+  }, [wifiHistory, wifiSearch])
+
+  const totalWifiPages = Math.max(1, Math.ceil(filteredWifi.length / ITEMS_PER_PAGE))
+  const paginatedWifi = filteredWifi.slice((wifiPage - 1) * ITEMS_PER_PAGE, wifiPage * ITEMS_PER_PAGE)
 
   // ── Fetch Contacts ────────────────────────────────────────────────────────
   const fetchContacts = async () => {
@@ -1075,6 +1196,15 @@ export default function KelolaQRPage() {
             Tambah Aset QR
           </Button>
         )}
+        {activeTab === "wifi" && (
+          <Button
+            onClick={() => { setShowAddWifi(true); setWifiForm({ ssid: "", password: "", encryption: "WPA", hidden: false }) }}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl text-xs px-4 h-9"
+          >
+            <Plus className="w-4 h-4 mr-1.5" />
+            Tambah WiFi QR
+          </Button>
+        )}
       </div>
 
       {/* Tabs Selector */}
@@ -1316,208 +1446,238 @@ export default function KelolaQRPage() {
 
       {/* ── WIFI TAB CONTENT ───────────────────────────────────────────── */}
       {activeTab === "wifi" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in duration-200">
-          {/* Form - Left Column */}
-          <div className="lg:col-span-7 bg-card border border-border p-6 rounded-2xl shadow-sm space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Generator QR Code WiFi</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Buat kode QR agar karyawan atau tamu dapat terhubung ke jaringan WiFi kantor secara instan tanpa mengetik password.
-              </p>
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Stats bar */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-xl text-xs font-semibold">
+              <Wifi className="w-4 h-4 text-primary" />
+              <span>{wifiHistory.length} Jaringan Tersimpan</span>
             </div>
+            {wifiSearch && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-xl text-xs font-semibold text-primary">
+                <Search className="w-3.5 h-3.5" />
+                {filteredWifi.length} hasil ditemukan
+              </div>
+            )}
+          </div>
 
-            <div className="space-y-4">
-              {/* SSID Jaringan */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nama Jaringan (SSID) *</label>
-                <div className="relative">
-                  <Wifi className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                  <input
-                    type="text"
-                    value={wifiForm.ssid}
-                    onChange={e => setWifiForm(w => ({ ...w, ssid: e.target.value }))}
-                    placeholder="Nama WiFi Kantor / Tamu"
-                    className={inputClass}
+          {/* Search */}
+          <div className="relative max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+            <input
+              type="text"
+              value={wifiSearch}
+              onChange={(e) => { setWifiSearch(e.target.value); setWifiPage(1) }}
+              placeholder="Cari nama jaringan (SSID)..."
+              className={inputClass}
+            />
+          </div>
+
+          {/* Grid */}
+          {paginatedWifi.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 border border-dashed rounded-2xl gap-3 text-muted-foreground">
+              <Wifi className="w-10 h-10 opacity-25" />
+              <p className="text-xs">{wifiSearch ? "Tidak ada jaringan yang cocok" : "Belum ada WiFi terdaftar"}</p>
+              {!wifiSearch && (
+                <Button onClick={() => { setShowAddWifi(true); setWifiForm({ ssid: "", password: "", encryption: "WPA", hidden: false }) }} variant="outline" className="text-xs rounded-xl px-4 h-8">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Pertama
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {paginatedWifi.map((w, idx) => {
+                const actualIndex = wifiHistory.findIndex(hist => hist.ssid === w.ssid)
+                return (
+                  <QRWifiCard
+                    key={idx}
+                    wifi={w}
+                    index={actualIndex !== -1 ? actualIndex : idx}
+                    onDelete={setDeleteWifiTarget}
+                    onDownload={handleDownloadWifi}
+                    onUse={loadWifiFromHistory}
+                    generateWifiString={generateWifiString}
                   />
-                </div>
-              </div>
+                )
+              })}
+            </div>
+          )}
 
-              {/* Encryption & Hidden */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Keamanan Jaringan</label>
-                  <select
-                    value={wifiForm.encryption}
-                    onChange={e => setWifiForm(w => ({ ...w, encryption: e.target.value as any }))}
-                    className={selectClass}
+          {/* Pagination */}
+          {filteredWifi.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between pt-2 border-t flex-wrap gap-3">
+              <p className="text-xs text-muted-foreground">
+                Halaman <span className="font-semibold text-foreground">{wifiPage}</span> dari{" "}
+                <span className="font-semibold text-foreground">{totalWifiPages}</span> · {filteredWifi.length} jaringan
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setWifiPage(p => Math.max(p - 1, 1))}
+                  disabled={wifiPage === 1}
+                  className="w-8 h-8 rounded-xl border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalWifiPages }, (_, i) => i + 1).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setWifiPage(n)}
+                    className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${n === wifiPage
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
                   >
-                    <option value="WPA">WPA / WPA2 (Umum)</option>
-                    <option value="WEP">WEP (Jaringan Lama)</option>
-                    <option value="nopass">Tanpa Sandi (Terbuka)</option>
-                  </select>
-                </div>
-
-                {wifiForm.encryption !== "nopass" && (
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kata Sandi (Password) *</label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
-                      <input
-                        type={showWifiPassword ? "text" : "password"}
-                        value={wifiForm.password}
-                        onChange={e => setWifiForm(w => ({ ...w, password: e.target.value }))}
-                        placeholder="Minimal 8 karakter"
-                        className={inputClass}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowWifiPassword(!showWifiPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {showWifiPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setWifiPage(p => Math.min(p + 1, totalWifiPages))}
+                  disabled={wifiPage === totalWifiPages}
+                  className="w-8 h-8 rounded-xl border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
+            </div>
+          )}
+        </div>
+      )}
 
-              {/* Hidden SSID Checkbox */}
-              <div className="flex items-center gap-2 pt-1">
+      {/* ── Add WiFi Modal ── */}
+      {showAddWifi && (
+        <Modal title="Tambah WiFi QR Baru" onClose={() => setShowAddWifi(false)}>
+          <div className="p-6 space-y-4">
+            {/* SSID Jaringan */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nama Jaringan (SSID) *</label>
+              <div className="relative">
+                <Wifi className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
                 <input
-                  type="checkbox"
-                  id="hidden-ssid"
-                  checked={wifiForm.hidden}
-                  onChange={e => setWifiForm(w => ({ ...w, hidden: e.target.checked }))}
-                  className="w-4 h-4 rounded-md border-input bg-background accent-primary cursor-pointer"
+                  type="text"
+                  value={wifiForm.ssid}
+                  onChange={e => setWifiForm(w => ({ ...w, ssid: e.target.value }))}
+                  placeholder="Nama WiFi Kantor / Tamu"
+                  className={inputClass}
                 />
-                <label htmlFor="hidden-ssid" className="text-xs text-muted-foreground select-none cursor-pointer">
-                  Jaringan tersembunyi (Hidden SSID)
-                </label>
               </div>
             </div>
 
-            {/* Save to History / Clear buttons */}
-            <div className="flex gap-3 justify-end pt-2 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setWifiForm({ ssid: "", password: "", encryption: "WPA", hidden: false })}
-                className="rounded-xl text-xs px-4"
-              >
-                Reset Form
-              </Button>
+            {/* Encryption & Hidden */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Keamanan Jaringan</label>
+                <select
+                  value={wifiForm.encryption}
+                  onChange={e => setWifiForm(w => ({ ...w, encryption: e.target.value as any }))}
+                  className={selectClass}
+                >
+                  <option value="WPA">WPA / WPA2 (Umum)</option>
+                  <option value="WEP">WEP (Jaringan Lama)</option>
+                  <option value="nopass">Tanpa Sandi (Terbuka)</option>
+                </select>
+              </div>
+
+              {wifiForm.encryption !== "nopass" && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kata Sandi (Password) *</label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                    <input
+                      type={showWifiPassword ? "text" : "password"}
+                      value={wifiForm.password}
+                      onChange={e => setWifiForm(w => ({ ...w, password: e.target.value }))}
+                      placeholder="Minimal 8 karakter"
+                      className={inputClass}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowWifiPassword(!showWifiPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showWifiPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Hidden SSID Checkbox */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="hidden-ssid-modal"
+                checked={wifiForm.hidden}
+                onChange={e => setWifiForm(w => ({ ...w, hidden: e.target.checked }))}
+                className="w-4 h-4 rounded-md border-input bg-background accent-primary cursor-pointer"
+              />
+              <label htmlFor="hidden-ssid-modal" className="text-xs text-muted-foreground select-none cursor-pointer">
+                Jaringan tersembunyi (Hidden SSID)
+              </label>
+            </div>
+
+            {/* Live QR Preview */}
+            {wifiForm.ssid.trim() && (
+              <div className="flex flex-col items-center gap-3 p-4 bg-muted/30 border border-border rounded-xl">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pratinjau QR Code WiFi</p>
+                <div className="bg-white p-3.5 rounded-xl border shadow-sm flex flex-col items-center gap-2">
+                  <div className="relative w-[140px] h-[140px] flex items-center justify-center">
+                    <img
+                      src="/dea-logo.png"
+                      alt="DEA Logo"
+                      className="absolute w-[100px] h-[100px] object-contain opacity-25 pointer-events-none select-none"
+                    />
+                    <QRCodeSVG
+                      id="wifi-qr-code-preview"
+                      value={generateWifiString(wifiForm)}
+                      size={140}
+                      bgColor="transparent"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-muted-foreground font-mono tracking-wider">
+                    {wifiForm.ssid}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-1">
+              <Button variant="outline" onClick={() => setShowAddWifi(false)} className="rounded-xl text-xs px-4">Batal</Button>
               <Button
                 onClick={handleSaveWifiToHistory}
                 disabled={!wifiForm.ssid.trim() || (wifiForm.encryption !== "nopass" && !wifiForm.password.trim())}
                 className="px-5 bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl text-xs"
               >
-                <Plus className="w-3.5 h-3.5 mr-1.5" /> Simpan ke Riwayat
+                <QrCode className="w-3.5 h-3.5 mr-1.5" />Simpan & Buat QR
               </Button>
             </div>
           </div>
+        </Modal>
+      )}
 
-          {/* Card Preview - Right Column */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
-            {/* Live WiFi Card Preview */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-md flex flex-col">
-              <div className="p-5 flex flex-col items-center bg-gradient-to-br from-blue-500/10 via-primary/5 to-purple-500/10 border-b border-border">
-                {/* Visual Header */}
-                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-md mb-3">
-                  <Wifi className="w-6 h-6 animate-pulse" />
-                </div>
-                <h4 className="text-sm font-bold text-foreground">KONEKSI WIFI</h4>
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">PT DUTA ESA ADIPERKASA</p>
-              </div>
-
-              <div className="p-6 flex flex-col items-center gap-4 bg-card">
-                {/* QR Code Container */}
-                <div className="bg-white border border-border p-4 rounded-2xl shadow-sm relative flex flex-col items-center gap-2">
-                  <div className="relative w-[150px] h-[150px] flex items-center justify-center">
-                    <img
-                      src="/dea-logo.png"
-                      alt="DEA Logo"
-                      className="absolute w-[110px] h-[110px] object-contain opacity-20 pointer-events-none select-none"
-                    />
-                    <QRCodeSVG
-                      id="wifi-qr-code"
-                      value={generateWifiString(wifiForm)}
-                      size={150}
-                      bgColor="transparent"
-                    />
-                  </div>
-                  <span className="text-[10px] font-bold text-muted-foreground font-mono tracking-wider">
-                    {wifiForm.ssid || "NAMA SSID"}
-                  </span>
-                </div>
-
-                {/* Connection Instructions */}
-                <div className="text-center space-y-1">
-                  <p className="text-xs font-bold text-foreground">Pindai kode QR untuk terhubung</p>
-                  <p className="text-[10px] text-muted-foreground leading-normal max-w-xs mx-auto">
-                    Buka kamera ponsel Anda (iOS/Android) atau aplikasi scan QR untuk menyambung langsung ke jaringan WiFi.
-                  </p>
-                </div>
-              </div>
-
-              {/* Action bar */}
-              <div className="border-t flex">
-                <button
-                  onClick={handleDownloadWifiQr}
-                  disabled={!wifiForm.ssid.trim()}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-muted-foreground hover:text-primary hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Download className="w-4 h-4" /> Unduh QR Code
-                </button>
+      {/* ── Delete WiFi Modal ── */}
+      {deleteWifiTarget !== null && (
+        <Modal title="Hapus Jaringan WiFi QR" onClose={() => setDeleteWifiTarget(null)}>
+          <div className="p-6 space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-red-50/60 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-red-700 dark:text-red-300">Tindakan ini tidak dapat dibatalkan</p>
+                <p className="text-xs text-red-600/80 dark:text-red-400/80 mt-1">
+                  Jaringan WiFi <span className="font-bold">"{wifiHistory[deleteWifiTarget]?.ssid}"</span> akan dihapus permanen dari riwayat beserta QR Code-nya.
+                </p>
               </div>
             </div>
-
-            {/* Riwayat (Local History) */}
-            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Riwayat WiFi Tersimpan</h4>
-
-              {wifiHistory.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">Belum ada jaringan yang disimpan ke riwayat.</p>
-              ) : (
-                <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-                  {wifiHistory.map((w, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/80 border rounded-xl transition-all group cursor-pointer"
-                      onClick={() => loadWifiFromHistory(w)}
-                    >
-                      <div className="min-w-0 flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                          <Wifi className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate">{w.ssid}</p>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-0.5">
-                            {w.encryption === "nopass" ? "Terbuka" : w.encryption}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); loadWifiFromHistory(w); }}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-background border transition-all"
-                          title="Gunakan"
-                        >
-                          <Sliders className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteWifiHistory(idx); }}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border transition-all"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setDeleteWifiTarget(null)} className="px-4 rounded-xl text-xs">Batal</Button>
+              <Button
+                onClick={handleDeleteWifi}
+                className="px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />Hapus
+              </Button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── Add Contact Modal ── */}

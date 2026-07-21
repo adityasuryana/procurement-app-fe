@@ -88,10 +88,8 @@ export default function PortalPage() {
 
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-3.5 bg-primary/15 text-primary rounded-2xl mb-2 ring-1 ring-primary/20">
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+          <div className="inline-flex items-center justify-center p-2 bg-white rounded-2xl mb-2 ring-1 ring-slate-200 dark:ring-neutral-800 shadow-sm">
+            <img src="/dea-logo.png" alt="DEA Logo" className="w-12 h-12 object-contain" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Duta Esa Adiperkasa</h1>
           <p className="text-xs text-slate-500 dark:text-neutral-400">Sistem Manajemen Informasi</p>
