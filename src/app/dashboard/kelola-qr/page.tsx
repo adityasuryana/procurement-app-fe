@@ -26,6 +26,12 @@ import {
   Layers,
   CheckCircle2,
   Sliders,
+  Pencil,
+  Wifi,
+  WifiOff,
+  Key,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import { QRCodeSVG } from "qrcode.react"
 import { Button } from "@/components/ui/button"
@@ -53,6 +59,7 @@ export type QRAsset = {
   location: string
   status: string
   description?: string
+  token?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -107,11 +114,10 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 function Toast({ msg, type }: { msg: string; type: "success" | "error" }) {
   return (
-    <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border animate-in slide-in-from-top-2 duration-300 flex items-center gap-2 ${
-      type === "success"
-        ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
-        : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
-    }`}>
+    <div className={`fixed top-4 right-4 z-[60] px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border animate-in slide-in-from-top-2 duration-300 flex items-center gap-2 ${type === "success"
+      ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+      : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
+      }`}>
       {type === "success" ? <QrCode className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
       {msg}
     </div>
@@ -198,7 +204,7 @@ function QRContactCard({ contact, onDelete, onDownload }: { contact: QRContact; 
 
 // ─── Inventory QR Card Component ──────────────────────────────────────────────
 
-function QRAssetCard({ item, onDelete, onDownload, getAssetScanUrl }: { item: QRAsset; onDelete: (i: QRAsset) => void; onDownload: (i: QRAsset) => void; getAssetScanUrl: (item: any) => string }) {
+function QRAssetCard({ item, onEdit, onDelete, onDownload, getAssetScanUrl }: { item: QRAsset; onEdit: (i: QRAsset) => void; onDelete: (i: QRAsset) => void; onDownload: (i: QRAsset) => void; getAssetScanUrl: (item: any) => string }) {
   const dateStr = item.createdAt
     ? new Date(item.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
     : "—"
@@ -304,10 +310,17 @@ function QRAssetCard({ item, onDelete, onDownload, getAssetScanUrl }: { item: QR
       {/* Footer Actions */}
       <div className="border-t flex">
         <button
+          onClick={() => onEdit(item)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Edit
+        </button>
+        <div className="w-px bg-border" />
+        <button
           onClick={() => onDownload(item)}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
         >
-          <Download className="w-3.5 h-3.5" /> Unduh QR
+          <Download className="w-3.5 h-3.5" /> Unduh
         </button>
         <div className="w-px bg-border" />
         <button
@@ -327,12 +340,12 @@ const EMPTY_CONTACT_FORM = { firstName: "", lastName: "", phone: "", email: "", 
 const EMPTY_ASSET_FORM = { name: "", code: "", category: "Elektronik", location: "", status: "Disimpan", description: "" }
 
 export default function KelolaQRPage() {
-  const [activeTab, setActiveTab] = useState<"vcard" | "asset">("vcard")
+  const [activeTab, setActiveTab] = useState<"vcard" | "asset" | "wifi">("vcard")
   const [serverIp, setServerIp] = useState("127.0.0.1")
 
   const getAssetScanUrl = (item: QRAsset | typeof EMPTY_ASSET_FORM) => {
     let baseOrigin = "http://localhost:3000"
-    
+
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname
       if (hostname === "localhost" || hostname === "127.0.0.1") {
@@ -343,6 +356,17 @@ export default function KelolaQRPage() {
       }
     }
 
+    // Dynamic routing by token (clean URL) if saved
+    if ("token" in item && item.token) {
+      return `${baseOrigin}/public/scan/${item.token}`
+    }
+
+    // Fallback dynamic routing by ID if token is not available
+    if ("id" in item && item.id) {
+      return `${baseOrigin}/public/scan?id=${item.id}`
+    }
+
+    // Unsaved preview fallback containing all parameters
     const params = new URLSearchParams({
       name: item.name,
       code: item.code,
@@ -353,7 +377,7 @@ export default function KelolaQRPage() {
     })
     return `${baseOrigin}/public/scan?${params.toString()}`
   }
-  
+
   // Contacts data state
   const [contacts, setContacts] = useState<QRContact[]>([])
   const [isContactsLoading, setIsContactsLoading] = useState(true)
@@ -371,6 +395,7 @@ export default function KelolaQRPage() {
   const [showAddAsset, setShowAddAsset] = useState(false)
   const [deleteContactTarget, setDeleteContactTarget] = useState<QRContact | null>(null)
   const [deleteAssetTarget, setDeleteAssetTarget] = useState<QRAsset | null>(null)
+  const [editAssetTarget, setEditAssetTarget] = useState<QRAsset | null>(null)
 
   // Forms
   const [contactForm, setContactForm] = useState(EMPTY_CONTACT_FORM)
@@ -383,6 +408,295 @@ export default function KelolaQRPage() {
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  // WiFi states & handlers
+  const [wifiForm, setWifiForm] = useState({ ssid: "", password: "", encryption: "WPA" as "WPA" | "WEP" | "nopass", hidden: false })
+  const [showWifiPassword, setShowWifiPassword] = useState(false)
+  const [wifiHistory, setWifiHistory] = useState<Array<typeof wifiForm>>([])
+
+  // Load WiFi history on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedHistory = localStorage.getItem("wifi_qr_history")
+      if (savedHistory) {
+        try {
+          setWifiHistory(JSON.parse(savedHistory))
+        } catch (e) {
+          console.error("Gagal memuat riwayat WiFi:", e)
+        }
+      }
+    }
+  }, [])
+
+  const generateWifiString = (form: typeof wifiForm) => {
+    const ssid = form.ssid || "NAMA SSID"
+    const pass = form.password || ""
+    const enc = form.encryption || "WPA"
+    const isHidden = form.hidden ? "true" : "false"
+
+    if (enc === "nopass") {
+      return `WIFI:S:${ssid};T:nopass;H:${isHidden};;`
+    }
+    return `WIFI:S:${ssid};T:${enc};P:${pass};H:${isHidden};;`
+  }
+
+  const handleSaveWifiToHistory = () => {
+    if (!wifiForm.ssid.trim()) return
+    const index = wifiHistory.findIndex(w => w.ssid.toLowerCase() === wifiForm.ssid.toLowerCase())
+    let newHistory = [...wifiHistory]
+    if (index !== -1) {
+      newHistory[index] = wifiForm
+    } else {
+      newHistory = [wifiForm, ...newHistory]
+    }
+    setWifiHistory(newHistory)
+    localStorage.setItem("wifi_qr_history", JSON.stringify(newHistory))
+    showToast(`WiFi "${wifiForm.ssid}" disimpan ke riwayat`)
+  }
+
+  const handleDeleteWifiHistory = (index: number) => {
+    const newHistory = wifiHistory.filter((_, i) => i !== index)
+    setWifiHistory(newHistory)
+    localStorage.setItem("wifi_qr_history", JSON.stringify(newHistory))
+    showToast("Riwayat WiFi dihapus")
+  }
+
+  const loadWifiFromHistory = (w: typeof wifiForm) => {
+    setWifiForm(w)
+    showToast(`Memuat Jaringan "${w.ssid}"`)
+  }
+
+  const handleDownloadWifiQr = () => {
+    const svg = document.getElementById("wifi-qr-code")
+    if (!svg) return
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const canvas = document.createElement("canvas")
+    const ctx = canvas.getContext("2d")
+
+    const logoImg = new Image()
+    const bgImg = new Image()
+    const qrImg = new Image()
+
+    let loadedCount = 0
+    const checkAllLoaded = () => {
+      loadedCount++
+      if (loadedCount === 3) {
+        drawCanvas()
+      }
+    }
+
+    logoImg.onload = checkAllLoaded
+    logoImg.onerror = checkAllLoaded
+
+    bgImg.onload = checkAllLoaded
+    bgImg.onerror = checkAllLoaded
+
+    qrImg.onload = checkAllLoaded
+    qrImg.onerror = checkAllLoaded
+
+    const drawCanvas = () => {
+      // A5 Size in pixels at high resolution (1200 x 1697)
+      const width = 1200
+      const height = 1697
+      canvas.width = width
+      canvas.height = height
+
+      if (ctx) {
+        // 1. Background Fill
+        ctx.fillStyle = "#ffffff"
+        ctx.fillRect(0, 0, width, height)
+
+        // 2. Draw Telecom Tower Background Image (Watermark style)
+        ctx.save()
+        ctx.globalAlpha = 0.06 // Soft watermark opacity
+
+        const bgAspect = bgImg.width / bgImg.height
+        const canvasAspect = width / height
+        let drawW = width
+        let drawH = height
+        let drawX = 0
+        let drawY = 0
+
+        if (bgAspect > canvasAspect) {
+          drawW = height * bgAspect
+          drawX = (width - drawW) / 2
+        } else {
+          drawH = width / bgAspect
+          drawY = (height - drawH) / 2
+        }
+        ctx.drawImage(bgImg, drawX, drawY, drawW, drawH)
+        ctx.restore()
+
+        // Draw subtle background grid (Telecom/Tech network theme)
+        ctx.strokeStyle = "rgba(67, 100, 247, 0.03)"
+        ctx.lineWidth = 1.5
+        const gridSize = 48
+        for (let x = 0; x < width; x += gridSize) {
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, height)
+          ctx.stroke()
+        }
+        for (let y = 0; y < height; y += gridSize) {
+          ctx.beginPath()
+          ctx.moveTo(0, y)
+          ctx.lineTo(width, y)
+          ctx.stroke()
+        }
+
+        // 3. Telecom Gradient Accent at the top (clean bar)
+        const topGradHeight = 20
+        const topGrad = ctx.createLinearGradient(0, 0, width, 0)
+        topGrad.addColorStop(0, "#0052D4")
+        topGrad.addColorStop(0.5, "#4364F7")
+        topGrad.addColorStop(1, "#00c6ff")
+        ctx.fillStyle = topGrad
+        ctx.fillRect(0, 0, width, topGradHeight)
+
+        // 4. Logo & Brand Name Header
+        const logoHeight = 110
+        const logoAspect = logoImg.width / logoImg.height
+        const logoWidth = logoHeight * logoAspect
+        const logoX = (width - logoWidth) / 2
+        const logoY = 130
+        ctx.drawImage(logoImg, logoX, logoY, logoWidth, logoHeight)
+
+        ctx.fillStyle = "#0f172a" // Slate-900
+        ctx.font = "bold 34px sans-serif"
+        ctx.textAlign = "center"
+        ctx.fillText("PT DUTA ESA ADIPERKASA", width / 2, 280)
+
+        ctx.fillStyle = "#4364F7" // Corporate Blue
+        ctx.font = "bold 13px sans-serif"
+        ctx.fillText("TELECOMMUNICATION, ELECTRICAL AND MECHANICAL", width / 2, 310)
+
+        // 5. Drawing the main QR Code with background shadow
+        const qrSize = 620
+        const qrX = (width - qrSize) / 2
+        const qrY = 370
+
+        // Draw QR card shadow / light blue background glow
+        ctx.fillStyle = "#ffffff"
+        ctx.strokeStyle = "rgba(67, 100, 247, 0.12)"
+        ctx.lineWidth = 2
+        ctx.save()
+        ctx.shadowColor = "rgba(15, 23, 42, 0.06)"
+        ctx.shadowBlur = 30
+        ctx.shadowOffsetY = 12
+        ctx.beginPath()
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80, 28)
+        } else {
+          ctx.rect(qrX - 40, qrY - 40, qrSize + 80, qrSize + 80)
+        }
+        ctx.fill()
+        ctx.stroke()
+        ctx.restore()
+
+        // Draw logo in the background behind the QR code, preserving aspect ratio (like in asset)
+        ctx.save()
+        ctx.globalAlpha = 0.28
+        const qrBgAspect = logoImg.width / logoImg.height
+        const bgTargetW = qrSize * 0.8
+        const bgTargetH = bgTargetW / qrBgAspect
+        const bgLogoX = (width - bgTargetW) / 2
+        const bgLogoY = qrY + (qrSize - bgTargetH) / 2
+        ctx.drawImage(logoImg, bgLogoX, bgLogoY, bgTargetW, bgTargetH)
+        ctx.restore()
+
+        // Draw QR Image SVG
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+        // 6. WiFi credentials section (SSID & Password)
+        const credY = 1130
+        const credWidth = width - 360
+
+        // Draw credentials container
+        ctx.fillStyle = "#f8fafc" // slate-50
+        ctx.strokeStyle = "rgba(67, 100, 247, 0.12)"
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(180, credY, credWidth, 270, 24)
+        } else {
+          ctx.rect(180, credY, credWidth, 270)
+        }
+        ctx.fill()
+        ctx.stroke()
+
+        // Credentials Details
+        ctx.textAlign = "left"
+
+        // SSID Jaringan (Network Name)
+        ctx.font = "bold 16px sans-serif"
+        ctx.fillStyle = "#64748b" // slate-500
+        ctx.fillText("SSID", 230, credY + 68)
+
+        ctx.font = "bold 34px sans-serif"
+        ctx.fillStyle = "#0f172a" // slate-900
+        ctx.fillText(wifiForm.ssid, 230, credY + 115)
+
+        // Kata Sandi (Password)
+        ctx.font = "bold 16px sans-serif"
+        ctx.fillStyle = "#64748b"
+        ctx.fillText("KATA SANDI / PASSWORD", 230, credY + 183)
+
+        ctx.font = "bold 34px sans-serif"
+        if (wifiForm.encryption === "nopass") {
+          ctx.fillStyle = "#059669" // Emerald green for open wifi
+          ctx.fillText("Jaringan Terbuka (Tanpa Sandi)", 230, credY + 230)
+        } else {
+          ctx.fillStyle = "#0f172a"
+          ctx.fillText(wifiForm.password, 230, credY + 230)
+        }
+
+        // Draw WiFi Wave Icon on the right side of the credentials box
+        ctx.save()
+        ctx.strokeStyle = "#4364F7"
+        ctx.lineWidth = 8
+        ctx.lineCap = "round"
+        const sigX = width - 290
+        const sigY = credY + 140
+
+        // Signal waves
+        ctx.fillStyle = "#4364F7"
+        ctx.beginPath()
+        ctx.arc(sigX, sigY + 20, 6, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.arc(sigX, sigY + 20, 32, -Math.PI * 0.75, -Math.PI * 0.25)
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.arc(sigX, sigY + 20, 64, -Math.PI * 0.75, -Math.PI * 0.25)
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.arc(sigX, sigY + 20, 96, -Math.PI * 0.75, -Math.PI * 0.25)
+        ctx.stroke()
+        ctx.restore()
+
+        // 7. Footer text
+        ctx.textAlign = "center"
+        ctx.fillStyle = "#94a3b8" // slate-400
+        ctx.font = "bold 15px sans-serif"
+        ctx.fillText("Infrastruktur Jaringan Terverifikasi PT Duta Esa Adiperkasa", width / 2, height - 100)
+        ctx.font = "medium 14px sans-serif"
+
+        // Trigger download
+        const a = document.createElement("a")
+        a.download = `WIFI_A5_${wifiForm.ssid.replace(/\s+/g, "_")}.png`
+        a.href = canvas.toDataURL("image/png")
+        a.click()
+      }
+    }
+
+    // Set src to trigger loading
+    logoImg.src = "/dea-logo.png"
+    bgImg.src = "/telecom_tower_bg.png"
+    qrImg.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
   }
 
   // ── Fetch Contacts ────────────────────────────────────────────────────────
@@ -577,6 +891,43 @@ export default function KelolaQRPage() {
     }
   }
 
+  const handleEditAssetClick = (item: QRAsset) => {
+    setEditAssetTarget(item)
+    setAssetForm({
+      name: item.name,
+      code: item.code,
+      category: item.category,
+      location: item.location,
+      status: item.status,
+      description: item.description || ""
+    })
+  }
+
+  const handleUpdateAsset = async () => {
+    if (!editAssetTarget || !isAssetFormValid) return
+    setIsSaving(true)
+    try {
+      const res = await fetch(`${API_URL}/api/qrasset/${editAssetTarget.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(assetForm),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setAssets(prev => prev.map(a => a.id === editAssetTarget.id ? data : a))
+        setEditAssetTarget(null)
+        setAssetForm(EMPTY_ASSET_FORM)
+        showToast(`QR Aset "${assetForm.name}" berhasil diperbarui`)
+      } else {
+        showToast(data.error || "Gagal memperbarui item aset", "error")
+      }
+    } catch {
+      showToast("Gagal terhubung ke server", "error")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleDeleteAsset = async () => {
     if (!deleteAssetTarget) return
     setIsDeleting(true)
@@ -602,27 +953,27 @@ export default function KelolaQRPage() {
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement("canvas")
     const ctx = canvas.getContext("2d")
-    
+
     const logoImg = new Image()
     logoImg.src = "/dea-logo.png"
-    
+
     const qrImg = new Image()
-    
+
     logoImg.onload = () => {
       qrImg.onload = () => {
         const qrSize = qrImg.width * 4 // 352 px
         const padding = 32
         const headerHeight = 70
         const footerHeight = 60
-        
+
         canvas.width = qrSize + padding * 2 // 416 px
         canvas.height = qrSize + padding * 2 + headerHeight + footerHeight // 548 px
-        
+
         if (ctx) {
           // Fill background with white
           ctx.fillStyle = "white"
           ctx.fillRect(0, 0, canvas.width, canvas.height)
-          
+
           // Draw clean rounded border around card
           ctx.strokeStyle = "#cbd5e1" // slate-300
           ctx.lineWidth = 3
@@ -633,17 +984,17 @@ export default function KelolaQRPage() {
             ctx.rect(12, 12, canvas.width - 24, canvas.height - 24)
           }
           ctx.stroke()
-          
+
           // Draw Corporate Header at the top
           ctx.fillStyle = "#0f172a" // slate-900
           ctx.font = "bold 16px sans-serif"
           ctx.textAlign = "center"
           ctx.fillText("PT DUTA ESA ADIPERKASA", canvas.width / 2, 42)
-          
+
           ctx.fillStyle = "#64748b" // slate-500
           ctx.font = "bold 9px sans-serif"
           ctx.fillText("ASET TERVERIFIKASI", canvas.width / 2, 58)
-          
+
           // Draw logo in the background, preserving aspect ratio (no stretching/gepeng)
           ctx.save()
           ctx.globalAlpha = 0.28
@@ -654,10 +1005,10 @@ export default function KelolaQRPage() {
           const logoY = headerHeight + padding + (qrSize - targetH) / 2
           ctx.drawImage(logoImg, logoX, logoY, targetW, targetH)
           ctx.restore()
-          
+
           // Draw QR Code SVG on top
           ctx.drawImage(qrImg, padding, headerHeight + padding, qrSize, qrSize)
-          
+
           // Draw Asset Code text centered below the QR code
           ctx.fillStyle = "#3c58b9" // Corporate blue color matching DEA logo
           ctx.font = "bold 26px monospace"
@@ -665,7 +1016,7 @@ export default function KelolaQRPage() {
           ctx.textBaseline = "middle"
           const textY = headerHeight + padding * 2 + qrSize + footerHeight / 2
           ctx.fillText(item.code.toUpperCase(), canvas.width / 2, textY)
-          
+
           const a = document.createElement("a")
           a.download = `QR_Aset_${item.code}.png`
           a.href = canvas.toDataURL("image/png")
@@ -702,11 +1053,11 @@ export default function KelolaQRPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Kelola QR</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manajemen kode QR digital untuk VCard Kontak dan Aset Barang Perusahaan.
+            Manajemen kode QR.
           </p>
         </div>
 
-        {activeTab === "vcard" ? (
+        {activeTab === "vcard" && (
           <Button
             onClick={() => { setShowAddContact(true); setContactForm(EMPTY_CONTACT_FORM) }}
             className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl text-xs px-4 h-9"
@@ -714,7 +1065,8 @@ export default function KelolaQRPage() {
             <Plus className="w-4 h-4 mr-1.5" />
             Tambah Kontak QR
           </Button>
-        ) : (
+        )}
+        {activeTab === "asset" && (
           <Button
             onClick={() => { setShowAddAsset(true); setAssetForm(EMPTY_ASSET_FORM) }}
             className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl text-xs px-4 h-9"
@@ -729,25 +1081,33 @@ export default function KelolaQRPage() {
       <div className="flex border-b border-border gap-2">
         <button
           onClick={() => setActiveTab("vcard")}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${
-            activeTab === "vcard"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${activeTab === "vcard"
+            ? "border-primary text-primary font-bold"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
         >
           <UserCircle2 className="w-4 h-4" />
           <span>VCard Kontak</span>
         </button>
         <button
           onClick={() => setActiveTab("asset")}
-          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${
-            activeTab === "asset"
-              ? "border-primary text-primary font-bold"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${activeTab === "asset"
+            ? "border-primary text-primary font-bold"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
         >
           <Package className="w-4 h-4" />
           <span>QR Aset</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("wifi")}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all border-b-2 -mb-px ${activeTab === "wifi"
+            ? "border-primary text-primary font-bold"
+            : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          <Wifi className="w-4 h-4" />
+          <span>QR WiFi</span>
         </button>
       </div>
 
@@ -823,11 +1183,10 @@ export default function KelolaQRPage() {
                   <button
                     key={n}
                     onClick={() => setContactsPage(n)}
-                    className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${
-                      n === contactsPage
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
+                    className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${n === contactsPage
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
                   >
                     {n}
                   </button>
@@ -910,7 +1269,7 @@ export default function KelolaQRPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {paginatedAsset.map(item => (
-                <QRAssetCard key={item.id} item={item} onDelete={setDeleteAssetTarget} onDownload={handleDownloadAsset} getAssetScanUrl={getAssetScanUrl} />
+                <QRAssetCard key={item.id} item={item} onEdit={handleEditAssetClick} onDelete={setDeleteAssetTarget} onDownload={handleDownloadAsset} getAssetScanUrl={getAssetScanUrl} />
               ))}
             </div>
           )}
@@ -934,11 +1293,10 @@ export default function KelolaQRPage() {
                   <button
                     key={n}
                     onClick={() => setAssetPage(n)}
-                    className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${
-                      n === assetPage
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
+                    className={`w-8 h-8 rounded-xl border text-xs font-bold transition-colors ${n === assetPage
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
                   >
                     {n}
                   </button>
@@ -953,6 +1311,212 @@ export default function KelolaQRPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── WIFI TAB CONTENT ───────────────────────────────────────────── */}
+      {activeTab === "wifi" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-in fade-in duration-200">
+          {/* Form - Left Column */}
+          <div className="lg:col-span-7 bg-card border border-border p-6 rounded-2xl shadow-sm space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Generator QR Code WiFi</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Buat kode QR agar karyawan atau tamu dapat terhubung ke jaringan WiFi kantor secara instan tanpa mengetik password.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* SSID Jaringan */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nama Jaringan (SSID) *</label>
+                <div className="relative">
+                  <Wifi className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                  <input
+                    type="text"
+                    value={wifiForm.ssid}
+                    onChange={e => setWifiForm(w => ({ ...w, ssid: e.target.value }))}
+                    placeholder="Nama WiFi Kantor / Tamu"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Encryption & Hidden */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Keamanan Jaringan</label>
+                  <select
+                    value={wifiForm.encryption}
+                    onChange={e => setWifiForm(w => ({ ...w, encryption: e.target.value as any }))}
+                    className={selectClass}
+                  >
+                    <option value="WPA">WPA / WPA2 (Umum)</option>
+                    <option value="WEP">WEP (Jaringan Lama)</option>
+                    <option value="nopass">Tanpa Sandi (Terbuka)</option>
+                  </select>
+                </div>
+
+                {wifiForm.encryption !== "nopass" && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kata Sandi (Password) *</label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+                      <input
+                        type={showWifiPassword ? "text" : "password"}
+                        value={wifiForm.password}
+                        onChange={e => setWifiForm(w => ({ ...w, password: e.target.value }))}
+                        placeholder="Minimal 8 karakter"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowWifiPassword(!showWifiPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showWifiPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden SSID Checkbox */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="hidden-ssid"
+                  checked={wifiForm.hidden}
+                  onChange={e => setWifiForm(w => ({ ...w, hidden: e.target.checked }))}
+                  className="w-4 h-4 rounded-md border-input bg-background accent-primary cursor-pointer"
+                />
+                <label htmlFor="hidden-ssid" className="text-xs text-muted-foreground select-none cursor-pointer">
+                  Jaringan tersembunyi (Hidden SSID)
+                </label>
+              </div>
+            </div>
+
+            {/* Save to History / Clear buttons */}
+            <div className="flex gap-3 justify-end pt-2 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setWifiForm({ ssid: "", password: "", encryption: "WPA", hidden: false })}
+                className="rounded-xl text-xs px-4"
+              >
+                Reset Form
+              </Button>
+              <Button
+                onClick={handleSaveWifiToHistory}
+                disabled={!wifiForm.ssid.trim() || (wifiForm.encryption !== "nopass" && !wifiForm.password.trim())}
+                className="px-5 bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl text-xs"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Simpan ke Riwayat
+              </Button>
+            </div>
+          </div>
+
+          {/* Card Preview - Right Column */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            {/* Live WiFi Card Preview */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-md flex flex-col">
+              <div className="p-5 flex flex-col items-center bg-gradient-to-br from-blue-500/10 via-primary/5 to-purple-500/10 border-b border-border">
+                {/* Visual Header */}
+                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-md mb-3">
+                  <Wifi className="w-6 h-6 animate-pulse" />
+                </div>
+                <h4 className="text-sm font-bold text-foreground">KONEKSI WIFI</h4>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-0.5">PT DUTA ESA ADIPERKASA</p>
+              </div>
+
+              <div className="p-6 flex flex-col items-center gap-4 bg-card">
+                {/* QR Code Container */}
+                <div className="bg-white border border-border p-4 rounded-2xl shadow-sm relative flex flex-col items-center gap-2">
+                  <div className="relative w-[150px] h-[150px] flex items-center justify-center">
+                    <img
+                      src="/dea-logo.png"
+                      alt="DEA Logo"
+                      className="absolute w-[110px] h-[110px] object-contain opacity-20 pointer-events-none select-none"
+                    />
+                    <QRCodeSVG
+                      id="wifi-qr-code"
+                      value={generateWifiString(wifiForm)}
+                      size={150}
+                      bgColor="transparent"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-muted-foreground font-mono tracking-wider">
+                    {wifiForm.ssid || "NAMA SSID"}
+                  </span>
+                </div>
+
+                {/* Connection Instructions */}
+                <div className="text-center space-y-1">
+                  <p className="text-xs font-bold text-foreground">Pindai kode QR untuk terhubung</p>
+                  <p className="text-[10px] text-muted-foreground leading-normal max-w-xs mx-auto">
+                    Buka kamera ponsel Anda (iOS/Android) atau aplikasi scan QR untuk menyambung langsung ke jaringan WiFi.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action bar */}
+              <div className="border-t flex">
+                <button
+                  onClick={handleDownloadWifiQr}
+                  disabled={!wifiForm.ssid.trim()}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-muted-foreground hover:text-primary hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Unduh QR Code
+                </button>
+              </div>
+            </div>
+
+            {/* Riwayat (Local History) */}
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Riwayat WiFi Tersimpan</h4>
+
+              {wifiHistory.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">Belum ada jaringan yang disimpan ke riwayat.</p>
+              ) : (
+                <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                  {wifiHistory.map((w, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-muted/40 hover:bg-muted/80 border rounded-xl transition-all group cursor-pointer"
+                      onClick={() => loadWifiFromHistory(w)}
+                    >
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <Wifi className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground truncate">{w.ssid}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-0.5">
+                            {w.encryption === "nopass" ? "Terbuka" : w.encryption}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); loadWifiFromHistory(w); }}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-background border transition-all"
+                          title="Gunakan"
+                        >
+                          <Sliders className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteWifiHistory(idx); }}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 border transition-all"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1033,9 +1597,16 @@ export default function KelolaQRPage() {
         </Modal>
       )}
 
-      {/* ── Add Asset Modal ── */}
-      {showAddAsset && (
-        <Modal title="Tambah Aset QR Baru" onClose={() => setShowAddAsset(false)}>
+      {/* ── Add / Edit Asset Modal ── */}
+      {(showAddAsset || editAssetTarget) && (
+        <Modal
+          title={editAssetTarget ? `Edit Aset QR: ${editAssetTarget.code}` : "Tambah Aset QR Baru"}
+          onClose={() => {
+            setShowAddAsset(false)
+            setEditAssetTarget(null)
+            setAssetForm(EMPTY_ASSET_FORM)
+          }}
+        >
           <div className="p-6 space-y-4">
             {/* Nama Barang */}
             <div className="space-y-1.5">
@@ -1073,7 +1644,9 @@ export default function KelolaQRPage() {
 
               {/* Status */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Status Awal *</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {editAssetTarget ? "Status Aset *" : "Status Awal *"}
+                </label>
                 <select value={assetForm.status} onChange={e => setAssetForm(i => ({ ...i, status: e.target.value }))} className={selectClass}>
                   <option value="Disimpan">Disimpan</option>
                   <option value="Digunakan">Digunakan (In Use)</option>
@@ -1126,7 +1699,7 @@ export default function KelolaQRPage() {
                       className="absolute w-[110px] h-[110px] object-contain opacity-60 pointer-events-none select-none"
                     />
                     <QRCodeSVG
-                      value={getAssetScanUrl(assetForm)}
+                      value={getAssetScanUrl(editAssetTarget ? { ...editAssetTarget, ...assetForm } : assetForm)}
                       size={140}
                       bgColor="transparent"
                     />
@@ -1139,13 +1712,29 @@ export default function KelolaQRPage() {
             )}
 
             <div className="flex gap-3 justify-end pt-1">
-              <Button variant="outline" onClick={() => setShowAddAsset(false)} className="rounded-xl text-xs px-4">Batal</Button>
               <Button
-                onClick={handleSaveAsset}
+                variant="outline"
+                onClick={() => {
+                  setShowAddAsset(false)
+                  setEditAssetTarget(null)
+                  setAssetForm(EMPTY_ASSET_FORM)
+                }}
+                className="rounded-xl text-xs px-4"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={editAssetTarget ? handleUpdateAsset : handleSaveAsset}
                 disabled={!isAssetFormValid || isSaving}
                 className="px-5 bg-primary text-primary-foreground font-bold hover:bg-primary/90 rounded-xl text-xs"
               >
-                {isSaving ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Menyimpan...</> : <><QrCode className="w-3.5 h-3.5 mr-1.5" />Simpan & Buat QR</>}
+                {isSaving ? (
+                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Menyimpan...</>
+                ) : editAssetTarget ? (
+                  <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />Simpan Perubahan</>
+                ) : (
+                  <><QrCode className="w-3.5 h-3.5 mr-1.5" />Simpan & Buat QR</>
+                )}
               </Button>
             </div>
           </div>

@@ -26,7 +26,6 @@ type QRAsset = {
   category: string
   location: string
   status: string
-  quantity: number
   description?: string
   token?: string
   createdAt?: string
@@ -66,7 +65,6 @@ function ScanContent() {
           category: searchParams.get("category") || "—",
           location: searchParams.get("location") || "—",
           status: searchParams.get("status") || "—",
-          quantity: parseInt(searchParams.get("quantity") || "1"),
           description: searchParams.get("description") || ""
         })
         setIsLoading(false)
@@ -86,7 +84,6 @@ function ScanContent() {
         category: "Elektronik",
         location: "Gudang Utama",
         status: "Baik",
-        quantity: 1,
         description: "Ini adalah pratinjau layout hasil scan barang."
       })
       setIsLoading(false)
