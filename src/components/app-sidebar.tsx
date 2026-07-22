@@ -76,7 +76,7 @@ const allNavItems = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [user, setUser] = React.useState({
     name: "Administrator",
-    role: "Admin",
+    role: "Administrator",
     avatar: "/avatars/shadcn.jpg",
   })
   const [isAdmin, setIsAdmin] = React.useState(false)
@@ -87,13 +87,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       try {
         const userData = JSON.parse(session)
         const fullName = `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.username
-        const role = userData.role || ""
+        let role = userData.role || ""
+        if (role === "Admin") {
+          role = "Administrator"
+          userData.role = "Administrator"
+          localStorage.setItem("user_session", JSON.stringify(userData))
+        }
         setUser({
           name: fullName || "Administrator",
           role: role || "Staff",
           avatar: "/avatars/shadcn.jpg"
         })
-        setIsAdmin(role.toLowerCase() === "admin")
+        const roleLower = role.toLowerCase()
+        setIsAdmin(roleLower === "administrator")
       } catch (e) {
         console.error("Gagal memuat sesi user:", e)
       }

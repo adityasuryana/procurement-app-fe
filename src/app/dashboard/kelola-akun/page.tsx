@@ -49,7 +49,7 @@ const EMPTY_FORM: FormState = {
   password: "",
 }
 
-const ROLES = ["Admin", "Staff", "Manager", "Viewer"]
+const ROLES = ["Administrator", "Staff", "Manager", "Viewer", "Manager HRGA", "Direktur Operasional", "Direktur Keuangan"]
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8015"
 
@@ -334,7 +334,14 @@ export default function KelolaAkunPage() {
     if (session) {
       try {
         const userData = JSON.parse(session)
-        setIsAdmin((userData.role || "").toLowerCase() === "admin")
+        let role = userData.role || ""
+        if (role === "Admin") {
+          role = "Administrator"
+          userData.role = "Administrator"
+          localStorage.setItem("user_session", JSON.stringify(userData))
+        }
+        const roleLower = role.toLowerCase()
+        setIsAdmin(roleLower === "administrator")
       } catch {
         setIsAdmin(false)
       }
@@ -515,12 +522,18 @@ export default function KelolaAkunPage() {
   // ── Role badge color ──────────────────────────────────────────────────
   const roleBadgeClass = (role: string) => {
     switch (role) {
-      case "Admin":
+      case "Administrator":
         return "bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/50"
       case "Manager":
         return "bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50"
       case "Staff":
         return "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50"
+      case "Manager HRGA":
+        return "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50"
+      case "Direktur Operasional":
+        return "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/50"
+      case "Direktur Keuangan":
+        return "bg-cyan-100 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/50"
       default:
         return "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700"
     }
@@ -547,7 +560,7 @@ export default function KelolaAkunPage() {
         <div>
           <h2 className="text-sm font-bold text-foreground">Akses Ditolak</h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-            Halaman ini hanya dapat diakses oleh pengguna dengan role <span className="font-bold text-foreground">Admin</span>.
+            Halaman ini hanya dapat diakses oleh pengguna dengan role <span className="font-bold text-foreground">Administrator</span>.
           </p>
         </div>
         <Button
